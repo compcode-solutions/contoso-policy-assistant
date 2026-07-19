@@ -1,0 +1,35 @@
+# Local container run for the API.
+# RAG today uses InMemoryVectorStore (Lexical by default) — Qdrant is optional future infra.
+services:
+  api:
+    build: .
+    ports:
+      - "5080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Ai__Provider: Lexical
+      Policies__RootPath: /app/data/policies
+      Jwt__Key: container-dev-only-change-me-signing-key-32+
+      # Optional — wire Azure OpenAI without rebuilding:
+      # Ai__Provider: AzureOpenAI
+      # Ai__AzureOpenAI__Endpoint: https://YOUR.openai.azure.com/
+      # Ai__AzureOpenAI__ApiKey: ${AZURE_OPENAI_KEY}
+      # Ai__AzureOpenAI__ChatDeployment: gpt-4o-mini
+      # Ai__AzureOpenAI__EmbeddingDeployment: text-embedding-3-small
+    volumes:
+      - ./data/policies:/app/data/policies:ro
+      - api-logs:/app/logs
+
+  # Optional profile: vector DB placeholder for a future Day-N swap from InMemoryVectorStore.
+  # Not used by the current API code — do not expect auto-wiring.
+  qdrant:
+    profiles: ["qdrant"]
+    image: qdrant/qdrant:v1.13.2
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+volumes:
+  api-logs:
+  qdrant-data:

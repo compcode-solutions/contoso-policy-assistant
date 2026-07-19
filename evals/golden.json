@@ -1,0 +1,62 @@
+[
+  {
+    "id": "leave-days",
+    "question": "How many leave days do I get each year?",
+    "roles": ["Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["20"],
+    "expectCitationFileContains": "leave"
+  },
+  {
+    "id": "expense-meals",
+    "question": "What is the daily meal limit while traveling?",
+    "roles": ["Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["60", "$60"],
+    "expectCitationFileContains": "expense"
+  },
+  {
+    "id": "cafeteria-refuse",
+    "question": "What's the cafeteria menu for Friday?",
+    "roles": ["Employee"],
+    "expectGrounded": false
+  },
+  {
+    "id": "unrelated-stock",
+    "question": "What is Contoso's stock price today?",
+    "roles": ["Employee"],
+    "expectGrounded": false
+  },
+  {
+    "id": "employee-no-safety-leak",
+    "question": "What is the workplace safety escalation Priority-1 ticket process?",
+    "roles": ["Employee"],
+    "expectGrounded": false,
+    "forbidAnswerContainsAny": ["Priority-1", "Priority 1"],
+    "forbidCitationFileContains": "safety"
+  },
+  {
+    "id": "supervisor-safety",
+    "question": "What should a supervisor do after a safety incident? Mention Safety Officer and Priority-1.",
+    "roles": ["Supervisor", "Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["Safety Officer", "Priority-1", "Priority", "1 hour"],
+    "expectCitationFileContains": "safety"
+  },
+  {
+    "id": "laptop-policy",
+    "question": "Can I install personal software on my company laptop?",
+    "roles": ["Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["IT", "personal software", "approval"],
+    "expectCitationFileContains": "laptop"
+  },
+  {
+    "id": "travel-advance",
+    "question": "How should I book business travel and what is the hotel cap?",
+    "roles": ["Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["travel desk", "200", "$200", "Hotel"],
+    "expectCitationFileContains": "travel"
+  }
+]

@@ -1,0 +1,24 @@
+---
+description: Contoso Policy Assistant — pairing rules for interview lab
+alwaysApply: true
+---
+
+You are pairing on **Contoso Policy Assistant**, an interview portfolio lab for Microsoft GCID (Full Stack + AI).
+
+## Stack
+- Backend: .NET 8 Web API (`src/Api`)
+- Frontend: React + TypeScript Vite (`web`)
+- Policies: `data/policies/*.md` with YAML frontmatter `allowedRoles`
+- AI (later days): Azure OpenAI preferred; OpenAI fallback via config
+
+## Working rules
+- Prefer thin vertical slices that compile and run.
+- For multi-file work: give a short plan first, then wait for approval.
+- No new NuGet/npm packages unless the user approves.
+- Never commit API keys or put secrets in the frontend.
+- AI answers (when implemented) must cite sources or refuse.
+- Tools that mutate data (tickets) require human approval.
+- After each feature: suggest a test and a `PROMPTS.md` log entry.
+
+## Patterns to practice
+Specify → Iterate → Constrain → Critique.
