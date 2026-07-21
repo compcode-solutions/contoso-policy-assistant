@@ -4,7 +4,7 @@ namespace Contoso.PolicyAssistant.Api.Features.Policies;
 
 /// <summary>
 /// Loads markdown policies + YAML-ish frontmatter (title, allowedRoles).
-/// ACL filter is applied before any future RAG retrieval (Day 3).
+/// ACL filter is applied before RAG retrieval.
 /// </summary>
 public sealed class PolicyCatalog
 {

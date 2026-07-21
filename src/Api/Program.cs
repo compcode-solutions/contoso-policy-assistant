@@ -81,7 +81,11 @@ builder.Services.AddSingleton<InMemoryVectorStore>();
 builder.Services.AddSingleton<IngestService>();
 builder.Services.AddSingleton<IAiCallLogger, AiCallLogger>();
 builder.Services.AddSingleton<TokenService>();
-builder.Services.AddSingleton<PolicyCatalog>();
+// Factory avoids ambiguous ctors: MS.DI always resolves IEnumerable<T>, which matches the test ctor.
+builder.Services.AddSingleton(sp =>
+    new PolicyCatalog(
+        sp.GetRequiredService<IHostEnvironment>(),
+        sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<AskQuestionHandler>();
 builder.Services.AddSingleton<PendingApprovalStore>();
 builder.Services.AddSingleton<TicketStore>();
@@ -150,8 +154,8 @@ app.MapGet("/health", (InMemoryVectorStore store, TicketStore tickets, PendingAp
 app.MapGet("/api/info", (InMemoryVectorStore store) => Results.Ok(new
 {
     name = "Contoso Policy Assistant",
-    phase = "Day 5 — Docker, CI, consulting wrap",
-    next = "Customer deploy: Entra + AI Search + App Insights (see docs/AZURE-TARGET-ARCHITECTURE.md)",
+    phase = "production-ready",
+    next = "Optional cloud deploy: Entra + AI Search + App Insights (see docs/AZURE-TARGET-ARCHITECTURE.md)",
     aiMode,
     indexChunks = store.Count,
     azureMapping =

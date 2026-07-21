@@ -339,11 +339,11 @@ export default function App() {
   return (
     <div className="page">
       <header className="header">
-        <p className="eyebrow">Interview lab · Day 5</p>
+        <p className="eyebrow">Policy assistant</p>
         <h1>Contoso Policy Assistant</h1>
         <p className="lede">
-          Grounded RAG + approval-gated <code>create_ticket</code>. Docker/CI and
-          Azure target docs ready for the consulting wrap.
+          Ask questions about company policies and get grounded answers with citations.
+          Escalations require supervisor approval before a ticket is created.
         </p>
         {session ? (
           <p className="session-bar">

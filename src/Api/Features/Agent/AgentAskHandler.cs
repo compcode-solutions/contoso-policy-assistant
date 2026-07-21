@@ -64,7 +64,7 @@ public sealed class AgentAskHandler(
                     Question = question,
                     CallerRoles = roleList,
                     StepsUsed = steps,
-                    Phase = "Day 4 — agent + HITL",
+                    Phase = "agent-hitl",
                     Note = "Write tool blocked by role. No side effects."
                 };
             }
@@ -134,7 +134,7 @@ public sealed class AgentAskHandler(
                 Question = question,
                 CallerRoles = roleList,
                 StepsUsed = steps,
-                Phase = "Day 4 — agent + HITL",
+                Phase = "agent-hitl",
                 PendingApproval = ToDto(item),
                 Note = "Tool proposed only — zero tickets written until Approve."
             };
@@ -159,7 +159,7 @@ public sealed class AgentAskHandler(
                 Question = question,
                 CallerRoles = roleList,
                 StepsUsed = steps,
-                Phase = "Day 4 — agent + HITL",
+                Phase = "agent-hitl",
                 Note = rag.Note
             };
         }
@@ -262,7 +262,7 @@ public sealed class AgentAskHandler(
             Question = question,
             CallerRoles = roles,
             StepsUsed = steps,
-            Phase = "Day 4 — agent + HITL",
+                Phase = "agent-hitl",
             Note = note
         };
 }

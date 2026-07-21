@@ -84,7 +84,7 @@ public sealed class AskQuestionHandler(
             Grounded = grounded,
             Question = question,
             ReceivedUtc = DateTimeOffset.UtcNow,
-            Phase = "Day 3 — grounded RAG",
+            Phase = "grounded-rag",
             CallerRoles = roleList,
             Provider = $"{embeddings.ProviderName}/{chat.ProviderName}",
             Note = grounded
@@ -101,7 +101,7 @@ public sealed class AskQuestionHandler(
             Grounded = false,
             Question = question,
             ReceivedUtc = DateTimeOffset.UtcNow,
-            Phase = "Day 3 — grounded RAG",
+            Phase = "grounded-rag",
             CallerRoles = roles,
             Provider = $"{embeddings.ProviderName}/{chat.ProviderName}",
             Note = note
