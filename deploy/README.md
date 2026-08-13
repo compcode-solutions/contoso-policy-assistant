@@ -40,3 +40,19 @@ docker compose -p contoso \
 
 Health: `https://api.policy.compcodesolutions.com/health` (expect 200, `aiMode: Lexical`).
 UI: `https://policy.compcodesolutions.com/` (expect 200).
+
+## Shared network — hostnames and recreates
+
+Four apps share the external Docker network `coolify`. Bare service names
+(`postgres`, `redis`) are ambiguous: Docker DNS round-robins across every
+container that answers that name. Always use the unique hostname
+`<project>-<service>-1` (example: `mts-postgres-1`, `rsg-redis-1`).
+
+When recreating an app service, always pass `--no-deps` so Compose does not
+restart a database as a side effect:
+
+```bash
+docker compose -f deploy/compose.prod.yml --env-file /opt/apps/env/<env>.env \
+  -p <project> up -d --no-deps --force-recreate <service>
+```
+
