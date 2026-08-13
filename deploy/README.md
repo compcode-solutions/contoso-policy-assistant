@@ -1,0 +1,42 @@
+# Contoso Policy Assistant — production deploy
+
+Disaster-recovery notes for `contoso-policy-assistant` on the Contabo VPS.
+Secrets live in `/opt/apps/env/contoso.env` (chmod 600). Never commit that file.
+
+## Project
+
+- Compose project name (`-p`): `contoso`
+- Compose file: `deploy/compose.prod.yml`
+- Git clone path: `/opt/apps/contoso`
+- Branch: `master`
+- Dockerfiles: repo-root `Dockerfile` (API), `web/Dockerfile` (UI)
+- Dispatch name: `contoso`
+
+## Env file
+
+`--env-file /opt/apps/env/contoso.env`
+
+Variable names (values stay on the box):
+
+`ASPNETCORE_ENVIRONMENT`, `Ai__Provider`, `Policies__RootPath`, `Cors__Origins`, `Jwt__Key`
+
+`Ai__Provider` must be `Lexical`. `Jwt__Key` is generated on the box (`openssl rand -base64 48`) and is never the compose/Dockerfile default. `Cors__Origins` is the UI origin (`https://policy.compcodesolutions.com`).
+
+## External dependencies
+
+- Docker network: `coolify` (external; Traefik)
+- No named volumes (policies baked into the API image)
+- Hosts: `policy.compcodesolutions.com` (UI), `api.policy.compcodesolutions.com` (API)
+- No published host ports
+
+## Bring up from scratch
+
+```bash
+docker compose -p contoso \
+  -f /opt/apps/contoso/deploy/compose.prod.yml \
+  --env-file /opt/apps/env/contoso.env \
+  up -d --build
+```
+
+Health: `https://api.policy.compcodesolutions.com/health` (expect 200, `aiMode: Lexical`).
+UI: `https://policy.compcodesolutions.com/` (expect 200).

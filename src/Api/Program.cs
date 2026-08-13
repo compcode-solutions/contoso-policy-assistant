@@ -91,12 +91,25 @@ builder.Services.AddSingleton<PendingApprovalStore>();
 builder.Services.AddSingleton<TicketStore>();
 builder.Services.AddSingleton<AgentAskHandler>();
 
+var corsOrigins = new List<string>
+{
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+};
+var extraOrigins = builder.Configuration["Cors:Origins"];
+if (!string.IsNullOrWhiteSpace(extraOrigins))
+{
+    foreach (var origin in extraOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (!corsOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+            corsOrigins.Add(origin);
+    }
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173")
+        policy.WithOrigins(corsOrigins.ToArray())
             .AllowAnyHeader()
             .AllowAnyMethod());
 });

@@ -1,0 +1,47 @@
+networks:
+  coolify:
+    external: true
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: /opt/apps/env/contoso.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Ai__Provider: Lexical
+      Policies__RootPath: /app/data/policies
+    networks: [coolify]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.contoso-api.rule=Host(`api.policy.compcodesolutions.com`)
+      - traefik.http.routers.contoso-api.entrypoints=https
+      - traefik.http.routers.contoso-api.tls=true
+      - traefik.http.routers.contoso-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.contoso-api-http.rule=Host(`api.policy.compcodesolutions.com`)
+      - traefik.http.routers.contoso-api-http.entrypoints=http
+      - traefik.http.routers.contoso-api-http.middlewares=contoso-api-https-redirect
+      - traefik.http.middlewares.contoso-api-https-redirect.redirectscheme.scheme=https
+      - traefik.http.services.contoso-api.loadbalancer.server.port=8080
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.policy.compcodesolutions.com
+    restart: unless-stopped
+    networks: [coolify]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.contoso-web.rule=Host(`policy.compcodesolutions.com`)
+      - traefik.http.routers.contoso-web.entrypoints=https
+      - traefik.http.routers.contoso-web.tls=true
+      - traefik.http.routers.contoso-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.contoso-web-http.rule=Host(`policy.compcodesolutions.com`)
+      - traefik.http.routers.contoso-web-http.entrypoints=http
+      - traefik.http.routers.contoso-web-http.middlewares=contoso-web-https-redirect
+      - traefik.http.middlewares.contoso-web-https-redirect.redirectscheme.scheme=https
+      - traefik.http.services.contoso-web.loadbalancer.server.port=80
