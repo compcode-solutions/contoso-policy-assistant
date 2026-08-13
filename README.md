@@ -2,9 +2,9 @@
 
 A full-stack sample app that helps employees ask questions about company policies and get **answers backed by real documents** — with role-based access control and human approval before any write action.
 
-**Stack:** .NET 8 Web API
+**Stack:** .NET 8 Web API · React + TypeScript · RAG (Retrieval-Augmented Generation) · JWT auth · Docker · Playwright e2e tests
 
-[**Live demo**](https://policy.compcodesolutions.com) · React + TypeScript · RAG (Retrieval-Augmented Generation) · JWT auth · Docker · Playwright e2e tests
+[**Live demo**](https://policy.compcodesolutions.com)
 
 ---
 
