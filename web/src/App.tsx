@@ -392,11 +392,7 @@ export default function App() {
 
       {!session ? (
         <section className="card">
-          <h2>Sign in (dev JWT)</h2>
-          <p className="meta">
-            Password: <code>pass</code>. Use <strong>Bob</strong> to propose +
-            approve escalation tickets.
-          </p>
+          <h2>Try it as three different users</h2>
           <div className="login-row">
             <button
               type="button"
@@ -420,6 +416,9 @@ export default function App() {
               Ada · Admin
             </button>
           </div>
+          <p className="meta">
+            Ask all three the same question. Compare what comes back.
+          </p>
           {loginError ? <p className="err">{loginError}</p> : null}
         </section>
       ) : (
