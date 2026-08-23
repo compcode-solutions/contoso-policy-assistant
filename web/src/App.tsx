@@ -93,6 +93,16 @@ function canApprove(session: Session | null) {
   );
 }
 
+function visitorStatusHeading(status: string, grounded: boolean): string {
+  if (status === "forbiddenTool") {
+    return "Blocked — this role cannot create tickets";
+  }
+  if (status === "pendingApproval") {
+    return "Waiting for supervisor approval";
+  }
+  return grounded ? "Grounded answer" : "Response";
+}
+
 export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
@@ -356,7 +366,7 @@ export default function App() {
         ) : null}
       </header>
 
-      <section className="card">
+      <section className="card visitor-hidden">
         <h2>API status</h2>
         {health ? (
           <p className="ok">
@@ -380,13 +390,10 @@ export default function App() {
               </>
             ) : null}
           </p>
+        ) : healthError ? (
+          <p className="err">{healthError}</p>
         ) : (
-          <p className="err">
-            {healthError ?? "Checking…"}
-            <span className="hint">
-              Run <code>dotnet run</code> in <code>src/Api</code>
-            </span>
-          </p>
+          <p>Checking…</p>
         )}
       </section>
 
@@ -458,24 +465,20 @@ export default function App() {
             {result ? (
               <div className="result">
                 <h3>
-                  {result.status === "pendingApproval"
-                    ? "Pending approval"
-                    : result.status === "forbiddenTool"
-                      ? "Tool blocked"
-                      : result.grounded
-                        ? "Grounded answer"
-                        : "Response"}{" "}
-                  <span
-                    className={
-                      result.status === "pendingApproval"
-                        ? "badge warn-badge"
-                        : result.grounded
-                          ? "badge ok-badge"
-                          : "badge warn-badge"
-                    }
-                  >
-                    {result.status}
-                  </span>
+                  {visitorStatusHeading(result.status, result.grounded)}
+                  {result.status === "pendingApproval" ? (
+                    <span className="visually-hidden">Pending approval</span>
+                  ) : null}
+                  {result.status !== "forbiddenTool" &&
+                  result.status !== "pendingApproval" ? (
+                    <span
+                      className={
+                        result.grounded ? "badge ok-badge" : "badge warn-badge"
+                      }
+                    >
+                      {result.status}
+                    </span>
+                  ) : null}
                 </h3>
                 <p className="answer">{result.answer}</p>
 
@@ -483,10 +486,11 @@ export default function App() {
                 result.pendingApproval.status === "pending" ? (
                   <div className="approval-box">
                     <h4>
-                      Tool: {result.pendingApproval.tool}{" "}
-                      <span className="meta">
-                        requiresApproval=
-                        {String(result.pendingApproval.requiresApproval)}
+                      {result.pendingApproval.requiresApproval
+                        ? "This action needs a human to approve it"
+                        : "Proposed action"}
+                      <span className="visually-hidden">
+                        Tool: {result.pendingApproval.tool}
                       </span>
                     </h4>
                     <p>
