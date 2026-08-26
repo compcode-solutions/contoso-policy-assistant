@@ -355,6 +355,9 @@ export default function App() {
           Ask questions about company policies and get grounded answers with citations.
           Escalations require supervisor approval before a ticket is created.
         </p>
+        <p className="how-link">
+          <a href="#how-it-works">How it works</a>
+        </p>
         {session ? (
           <p className="session-bar">
             Signed in as <strong>{session.displayName}</strong>
@@ -604,6 +607,35 @@ export default function App() {
           </section>
         </>
       )}
+
+      <section id="how-it-works" className="card how-it-works">
+        <h2>How it works</h2>
+        <p>
+          Internal policy Q&amp;A where a caller only retrieves documents they
+          are cleared to see — and a write (create ticket) does not happen until
+          a human approves it.
+        </p>
+        <p>
+          <strong>Stack (this demo):</strong> .NET 8 Web API · React + Vite ·
+          in-memory lexical retrieval (hashed bag-of-words, no hosted embedding
+          model) · JWT roles. No Temporal, LangGraph, or pgvector.
+        </p>
+        <p>
+          <strong>Engineering choice:</strong> access control is applied{" "}
+          <em>before</em> similarity search, not as a filter on the result set.
+          Restricted chunks never enter the candidate list, so they cannot leak
+          via citation counts or top-K starvation.
+        </p>
+        <p>
+          <a
+            href="https://github.com/compcode-solutions/contoso-policy-assistant"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Public repository
+          </a>
+        </p>
+      </section>
     </div>
   );
 }

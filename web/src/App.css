@@ -51,6 +51,19 @@ h1 {
   color: #444;
 }
 
+.how-link {
+  margin: 0.75rem 0 0;
+}
+
+.how-link a {
+  color: #0f6e56;
+  font-weight: 600;
+}
+
+.how-it-works p {
+  margin: 0.7rem 0 0;
+}
+
 .session-bar {
   margin: 0.85rem 0 0;
   font-size: 0.95rem;
