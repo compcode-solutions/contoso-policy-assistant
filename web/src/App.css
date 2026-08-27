@@ -217,6 +217,30 @@ code {
   white-space: pre-wrap;
 }
 
+.fallback-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: #fff4d6;
+  border: 1px solid #e6c35c;
+  color: #5c4a00;
+  font-size: 0.9rem;
+}
+
+.ai-trace {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: #eef6f3;
+  border: 1px solid #c5ddd4;
+  color: #1a3d30;
+  font-size: 0.88rem;
+}
+
+.ai-trace strong {
+  font-weight: 650;
+}
+
 .citations {
   margin: 0.75rem 0;
 }
@@ -299,6 +323,16 @@ code {
   .warn-badge {
     background: #3d1a1a;
     color: #f0a0a0;
+  }
+  .fallback-banner {
+    background: #3d3420;
+    border-color: #8a7420;
+    color: #f5e6a8;
+  }
+  .ai-trace {
+    background: #14221c;
+    border-color: #2a7a5f;
+    color: #c5ddd4;
   }
 }
 

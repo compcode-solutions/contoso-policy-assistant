@@ -11,14 +11,28 @@ public sealed class LexicalEmbeddingClient : IEmbeddingClient
 {
     private static readonly Regex TokenRx = new(@"[a-z0-9$]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     public const int Dimensions = 256;
+    public const string Model = "lexical-bow-256";
 
     public string ProviderName => "Lexical";
+    public string ModelName => Model;
 
-    public Task<float[]> EmbedAsync(string text, CancellationToken ct = default) =>
-        Task.FromResult(Embed(text));
+    public Task<EmbeddingCallResult> EmbedAsync(string text, CancellationToken ct = default) =>
+        Task.FromResult(new EmbeddingCallResult
+        {
+            Vector = Embed(text),
+            TokenCount = 0,
+            Model = Model
+        });
 
-    public Task<IReadOnlyList<float[]>> EmbedBatchAsync(IReadOnlyList<string> texts, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<float[]>>(texts.Select(Embed).ToList());
+    public Task<EmbeddingBatchResult> EmbedBatchAsync(
+        IReadOnlyList<string> texts,
+        CancellationToken ct = default) =>
+        Task.FromResult(new EmbeddingBatchResult
+        {
+            Vectors = texts.Select(Embed).ToList(),
+            TokenCount = 0,
+            Model = Model
+        });
 
     public static float[] Embed(string text)
     {

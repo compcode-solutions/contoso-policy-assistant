@@ -23,24 +23,33 @@ public sealed class InMemoryVectorStore
         }
     }
 
-    public IReadOnlyList<RetrievedChunk> Search(
+    /// <summary>
+    /// ACL filter runs on the snapshot BEFORE cosine similarity. Do not reorder
+    /// these two steps — that is the security property this demo exists to show.
+    /// </summary>
+    public RetrievalResult Search(
         float[] queryEmbedding,
         IEnumerable<string> userRoles,
         int topK,
-        float minScore)
+        float minScore,
+        bool useLexicalVectors = false)
     {
         var roles = userRoles.ToArray();
-        List<PolicyChunk> snapshot;
+        List<PolicyChunk> corpus;
         lock (_gate)
         {
-            snapshot = _chunks.Where(c => c.IsVisibleTo(roles)).ToList();
+            corpus = _chunks.ToList();
         }
 
-        return snapshot
+        // ACL FIRST — restricted chunks never enter the candidate list.
+        var snapshot = corpus.Where(c => c.IsVisibleTo(roles)).ToList();
+        var filteredByRole = corpus.Count - snapshot.Count;
+
+        var hits = snapshot
             .Select(c => new
             {
                 Chunk = c,
-                Score = VectorMath.CosineSimilarity(queryEmbedding, c.Embedding)
+                Score = VectorMath.CosineSimilarity(queryEmbedding, VectorFor(c, useLexicalVectors))
             })
             .Where(x => x.Score >= minScore)
             .OrderByDescending(x => x.Score)
@@ -52,5 +61,20 @@ public sealed class InMemoryVectorStore
                 Score = x.Score
             })
             .ToList();
+
+        return new RetrievalResult
+        {
+            Hits = hits,
+            CorpusCount = corpus.Count,
+            VisibleBeforeScoring = snapshot.Count,
+            FilteredByRole = filteredByRole
+        };
+    }
+
+    private static float[] VectorFor(PolicyChunk chunk, bool useLexical)
+    {
+        if (useLexical && chunk.LexicalEmbedding is { Length: > 0 })
+            return chunk.LexicalEmbedding;
+        return chunk.Embedding;
     }
 }

@@ -18,9 +18,11 @@ Secrets live in `/opt/apps/env/contoso.env` (chmod 600). Never commit that file.
 
 Variable names (values stay on the box):
 
-`ASPNETCORE_ENVIRONMENT`, `Ai__Provider`, `Policies__RootPath`, `Cors__Origins`, `Jwt__Key`
+`ASPNETCORE_ENVIRONMENT`, `Ai__Provider`, `Ai__OpenAI__ApiKey`, `Ai__OpenAI__ChatModel`, `Ai__OpenAI__EmbeddingModel`, `Ai__DailyRequestCeiling`, `Ai__PerIpLimit`, `Ai__PerIpWindowMinutes`, `Policies__RootPath`, `Cors__Origins`, `Jwt__Key`
 
-`Ai__Provider` must be `Lexical`. `Jwt__Key` is generated on the box (`openssl rand -base64 48`) and is never the compose/Dockerfile default. `Cors__Origins` is the UI origin (`https://policy.compcodesolutions.com`).
+`Ai__Provider` is `OpenAI` when a key is present, otherwise `Lexical`. `Ai__OpenAI__ApiKey` lives only in this env file — never in compose or git. `Jwt__Key` is generated on the box (`openssl rand -base64 48`) and is never the compose/Dockerfile default. `Cors__Origins` is the UI origin (`https://policy.compcodesolutions.com`).
+
+Set a monthly spend cap in the OpenAI dashboard **before** pasting the key. The in-app daily ceiling (`Ai__DailyRequestCeiling`, default 10) falls back to lexical retrieval when hit; it is not a substitute for the provider cap.
 
 ## External dependencies
 
@@ -38,7 +40,7 @@ docker compose -p contoso \
   up -d --build
 ```
 
-Health: `https://api.policy.compcodesolutions.com/health` (expect 200, `aiMode: Lexical`).
+Health: `https://api.policy.compcodesolutions.com/health` (expect 200; `aiMode` is `OpenAI` when a key is set, otherwise `Lexical`).
 UI: `https://policy.compcodesolutions.com/` (expect 200).
 
 ## Shared network — hostnames and recreates

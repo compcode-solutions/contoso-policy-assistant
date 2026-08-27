@@ -9,6 +9,11 @@ public sealed class PolicyChunk
     public required string[] AllowedRoles { get; init; }
     public required string Text { get; init; }
     public required float[] Embedding { get; init; }
+    /// <summary>
+    /// Always populated at ingest so a hosted-provider failure can fall back to
+    /// lexical search without mixing vector spaces.
+    /// </summary>
+    public float[] LexicalEmbedding { get; init; } = [];
     public int Ordinal { get; init; }
 
     public bool IsVisibleTo(IEnumerable<string> userRoles) =>

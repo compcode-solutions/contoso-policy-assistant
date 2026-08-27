@@ -54,6 +54,19 @@ type AgentOk = {
   phase: string;
   pendingApproval?: PendingApproval | null;
   note: string;
+  model?: string;
+  chunksRetrieved?: number;
+  chunksFilteredByRole?: number;
+  corpusCount?: number;
+  visibleBeforeScoring?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  embeddingTokens?: number;
+  totalTokens?: number;
+  latencyMs?: number;
+  fallback?: boolean;
+  fallbackReason?: string | null;
+  provider?: string;
 };
 
 type PolicyRow = {
@@ -284,6 +297,13 @@ export default function App() {
         return;
       }
 
+      if (res.status === 429) {
+        setFormError(
+          "Too many questions from this network — wait a few minutes and try again.",
+        );
+        return;
+      }
+
       if (!res.ok) {
         setFormError(`Request failed (HTTP ${res.status})`);
         return;
@@ -485,6 +505,45 @@ export default function App() {
                 </h3>
                 <p className="answer">{result.answer}</p>
 
+                {result.fallback ? (
+                  <p className="fallback-banner" role="status">
+                    {result.fallbackReason === "daily-ceiling"
+                      ? "Demo quota reached for today — running on local lexical retrieval"
+                      : "Hosted model unavailable — running on local lexical retrieval"}
+                  </p>
+                ) : null}
+
+                <p className="ai-trace">
+                  Answered by{" "}
+                  <strong>{result.model || result.provider || "unknown"}</strong>
+                  {typeof result.chunksRetrieved === "number" ? (
+                    <>
+                      {" "}
+                      · retrieved <strong>{result.chunksRetrieved}</strong>{" "}
+                      {result.chunksRetrieved === 1 ? "chunk" : "chunks"}
+                    </>
+                  ) : null}
+                  {typeof result.chunksFilteredByRole === "number" ? (
+                    <>
+                      {" "}
+                      · <strong>{result.chunksFilteredByRole}</strong> filtered
+                      out by role before scoring
+                    </>
+                  ) : null}
+                  {typeof result.totalTokens === "number" ? (
+                    <>
+                      {" "}
+                      · <strong>{result.totalTokens}</strong> tokens
+                    </>
+                  ) : null}
+                  {typeof result.latencyMs === "number" ? (
+                    <>
+                      {" "}
+                      · <strong>{result.latencyMs}</strong> ms
+                    </>
+                  ) : null}
+                </p>
+
                 {result.pendingApproval &&
                 result.pendingApproval.status === "pending" ? (
                   <div className="approval-box">
@@ -617,8 +676,11 @@ export default function App() {
         </p>
         <p>
           <strong>Stack (this demo):</strong> .NET 8 Web API · React + Vite ·
-          in-memory lexical retrieval (hashed bag-of-words, no hosted embedding
-          model) · JWT roles. No Temporal, LangGraph, or pgvector.
+          OpenAI <code>text-embedding-3-small</code> (1536-d) +{" "}
+          <code>gpt-4o-mini</code> when a key is configured, with automatic
+          fallback to local lexical retrieval (hashed bag-of-words, 256-d) on
+          daily quota or API error · JWT roles. No Temporal, LangGraph, or
+          pgvector.
         </p>
         <p>
           <strong>Engineering choice:</strong> access control is applied{" "}

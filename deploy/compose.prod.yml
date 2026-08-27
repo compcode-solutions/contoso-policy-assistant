@@ -11,8 +11,10 @@ services:
     env_file: /opt/apps/env/contoso.env
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      Ai__Provider: Lexical
       Policies__RootPath: /app/data/policies
+      Ai__DailyRequestCeiling: "10"
+      Ai__PerIpLimit: "10"
+      Ai__PerIpWindowMinutes: "15"
     networks: [coolify]
     labels:
       - traefik.enable=true

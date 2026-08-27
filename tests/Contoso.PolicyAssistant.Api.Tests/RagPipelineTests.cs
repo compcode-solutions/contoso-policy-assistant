@@ -49,8 +49,62 @@ public class RagPipelineTests
         var q = LexicalEmbeddingClient.Embed("How many leave days do employees get?");
         var hits = store.Search(q, ["Employee"], topK: 4, minScore: 0.05f);
 
-        Assert.DoesNotContain(hits, h => h.Chunk.FileName == "safety-escalate.md");
-        Assert.Contains(hits, h => h.Chunk.FileName == "leave-policy.md");
+        Assert.Equal(1, hits.FilteredByRole);
+        Assert.Equal(2, hits.CorpusCount);
+        Assert.Equal(1, hits.VisibleBeforeScoring);
+        Assert.DoesNotContain(hits.Hits, h => h.Chunk.FileName == "safety-escalate.md");
+        Assert.Contains(hits.Hits, h => h.Chunk.FileName == "leave-policy.md");
+    }
+
+    [Fact]
+    public void Employee_retrieval_excludes_supervisor_chunk_openai_shaped_vectors()
+    {
+        // Same ACL-before-scoring path with 1536-dim vectors (text-embedding-3-small width).
+        // Proves a provider swap cannot reorder the filter ahead of cosine.
+        const int dims = OpenAiEmbeddingClient.DefaultDimensions;
+        var leave = PadTo(LexicalEmbeddingClient.Embed("employees receive 20 days of paid annual leave"), dims);
+        var safety = PadTo(LexicalEmbeddingClient.Embed("escalate Priority-1 ticket safety incident supervisors"), dims);
+
+        var store = new InMemoryVectorStore();
+        store.ReplaceAll(
+        [
+            new PolicyChunk
+            {
+                Id = "leave:0",
+                DocumentId = "leave",
+                Title = "Leave Policy",
+                FileName = "leave-policy.md",
+                AllowedRoles = ["Employee", "Supervisor"],
+                Text = "Full-time employees receive 20 days of paid annual leave per calendar year.",
+                Embedding = leave,
+                LexicalEmbedding = LexicalEmbeddingClient.Embed("employees receive 20 days of paid annual leave")
+            },
+            new PolicyChunk
+            {
+                Id = "safety:0",
+                DocumentId = "safety",
+                Title = "Workplace Safety Escalation",
+                FileName = "safety-escalate.md",
+                AllowedRoles = ["Supervisor", "Admin"],
+                Text = "Escalate by creating a Priority-1 ticket for safety incidents.",
+                Embedding = safety,
+                LexicalEmbedding = LexicalEmbeddingClient.Embed("escalate Priority-1 ticket safety incident supervisors")
+            }
+        ], "OpenAI");
+
+        var q = PadTo(LexicalEmbeddingClient.Embed("How many leave days do employees get?"), dims);
+        var hits = store.Search(q, ["Employee"], topK: 4, minScore: 0.05f);
+
+        Assert.Equal(1, hits.FilteredByRole);
+        Assert.DoesNotContain(hits.Hits, h => h.Chunk.FileName == "safety-escalate.md");
+        Assert.Contains(hits.Hits, h => h.Chunk.FileName == "leave-policy.md");
+    }
+
+    private static float[] PadTo(float[] src, int dims)
+    {
+        var v = new float[dims];
+        Array.Copy(src, v, Math.Min(src.Length, dims));
+        return v;
     }
 
     [Fact]
@@ -124,7 +178,8 @@ public class RagPipelineTests
                 FileName = "leave-policy.md",
                 AllowedRoles = ["Employee", "Supervisor", "Admin"],
                 Text = leaveText,
-                Embedding = leaveEmb
+                Embedding = leaveEmb.Vector,
+                LexicalEmbedding = leaveEmb.Vector
             },
             new PolicyChunk
             {
@@ -134,7 +189,8 @@ public class RagPipelineTests
                 FileName = "expense-policy.md",
                 AllowedRoles = ["Employee", "Supervisor", "Admin"],
                 Text = expenseText,
-                Embedding = expenseEmb
+                Embedding = expenseEmb.Vector,
+                LexicalEmbedding = expenseEmb.Vector
             },
             new PolicyChunk
             {
@@ -144,7 +200,8 @@ public class RagPipelineTests
                 FileName = "safety-escalate.md",
                 AllowedRoles = ["Supervisor", "Admin"],
                 Text = safetyText,
-                Embedding = safetyEmb
+                Embedding = safetyEmb.Vector,
+                LexicalEmbedding = safetyEmb.Vector
             }
         ], "Lexical");
 

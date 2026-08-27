@@ -104,6 +104,7 @@ public sealed class AgentAskHandler(
             string sopHint = "";
             IReadOnlyList<Citation> citations = [];
             bool grounded = false;
+            AskQuestionResponse? ragTrace = null;
             if (steps < opts.MaxSteps)
             {
                 steps++;
@@ -113,6 +114,7 @@ public sealed class AgentAskHandler(
                     sopHint = rag.Answer;
                     citations = rag.Citations;
                     grounded = rag.Grounded;
+                    ragTrace = rag;
                 }
                 catch (OperationCanceledException)
                 {
@@ -136,6 +138,18 @@ public sealed class AgentAskHandler(
                 StepsUsed = steps,
                 Phase = "agent-hitl",
                 PendingApproval = ToDto(item),
+                Model = ragTrace?.Model ?? "",
+                ChunksRetrieved = ragTrace?.ChunksRetrieved ?? 0,
+                ChunksFilteredByRole = ragTrace?.ChunksFilteredByRole ?? 0,
+                CorpusCount = ragTrace?.CorpusCount ?? 0,
+                VisibleBeforeScoring = ragTrace?.VisibleBeforeScoring ?? 0,
+                PromptTokens = ragTrace?.PromptTokens ?? 0,
+                CompletionTokens = ragTrace?.CompletionTokens ?? 0,
+                EmbeddingTokens = ragTrace?.EmbeddingTokens ?? 0,
+                TotalTokens = ragTrace?.TotalTokens ?? 0,
+                LatencyMs = ragTrace?.LatencyMs ?? (int)sw.ElapsedMilliseconds,
+                Fallback = ragTrace?.Fallback ?? false,
+                FallbackReason = ragTrace?.FallbackReason,
                 Note = "Tool proposed only — zero tickets written until Approve."
             };
         }
@@ -160,6 +174,18 @@ public sealed class AgentAskHandler(
                 CallerRoles = roleList,
                 StepsUsed = steps,
                 Phase = "agent-hitl",
+                Model = rag.Model,
+                ChunksRetrieved = rag.ChunksRetrieved,
+                ChunksFilteredByRole = rag.ChunksFilteredByRole,
+                CorpusCount = rag.CorpusCount,
+                VisibleBeforeScoring = rag.VisibleBeforeScoring,
+                PromptTokens = rag.PromptTokens,
+                CompletionTokens = rag.CompletionTokens,
+                EmbeddingTokens = rag.EmbeddingTokens,
+                TotalTokens = rag.TotalTokens,
+                LatencyMs = rag.LatencyMs,
+                Fallback = rag.Fallback,
+                FallbackReason = rag.FallbackReason,
                 Note = rag.Note
             };
         }

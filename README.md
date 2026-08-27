@@ -1,10 +1,28 @@
 # Contoso Policy Assistant
 
-A full-stack sample app that helps employees ask questions about company policies and get **answers backed by real documents** — with role-based access control and human approval before any write action.
+**Most RAG implementations retrieve first and filter by permission afterwards. That leaks — and this repository shows the alternative, with the code and a test.**
+
+Filtering after retrieval leaks in two ways. The obvious one is metadata: restricted chunks were retrieved, so they leave fingerprints in citation counts, traces, token logs and debug endpoints. The subtle one is **top-K starvation** — if the ten nearest chunks are all restricted, an uncleared user gets *"I don't know"* while a cleared user gets a confident cited answer. That difference is itself information about what the corpus contains.
+
+Here the permission check is a **precondition of candidacy**, not a post-filter:
+
+```csharp
+// src/Api/Features/Rag/InMemoryVectorStore.cs
+snapshot = _chunks.Where(c => c.IsVisibleTo(roles)).ToList();   // ACL first
+// ... cosine similarity runs only over `snapshot`
+```
+
+Similarity scoring never sees a chunk the caller isn't cleared for. There is no filtered-out set to leak, because it was never assembled. `Search` has no overload that omits roles, so you cannot call it and forget.
+
+Proved both directions in [`RagPipelineTests.cs`](tests/Contoso.PolicyAssistant.Api.Tests/RagPipelineTests.cs) — an Employee cannot retrieve a Supervisor-only chunk, *and* still gets the answer they're entitled to.
 
 **Stack:** .NET 8 Web API · React + TypeScript · RAG (Retrieval-Augmented Generation) · JWT auth · Docker · Playwright e2e tests
 
-[**Live demo**](https://policy.compcodesolutions.com)
+[**Live demo**](https://policy.compcodesolutions.com) — sign in as three different users, ask the same question, compare what comes back.
+
+> The public instance uses **OpenAI** when `Ai__OpenAI__ApiKey` is set: embeddings via `text-embedding-3-small` (**1536 dimensions**), answers via `gpt-4o-mini`. On daily quota (config `Ai__DailyRequestCeiling`, default 10) or API error it **falls back to lexical** retrieval (hashed bag-of-words, 256-d) so the demo degrades rather than breaking. The access-control path is identical either way — `Search` filters by role **before** cosine similarity and does not know where the vector came from. At corpus sizes beyond in-memory, the same principle moves into the store: `WHERE allowed_roles && $roles` evaluated *before* the ANN index ranks, rather than filtering its output.
+
+Written up in full: [Why filtering RAG results after retrieval leaks data](https://compcodesolutions.com/blog/access-control-before-retrieval)
 
 ---
 
@@ -32,8 +50,8 @@ In short: grounded Q&A over documents, security by role, and human-in-the-loop f
 | **Refusal** | No matching context → “I don’t know”, not a hallucination |
 | **Role-based ACL** | Documents filtered **before** search — the model never sees forbidden content |
 | **Agent + HITL** | `create_ticket` is proposed, then Approve/Reject — no auto-write |
-| **Swappable AI** | Works offline with `Lexical` mode; optional Azure OpenAI / OpenAI via config |
-| **Tests & evals** | Unit tests + golden eval cases for cite/refuse/ACL/ticket rules |
+| **Swappable AI** | OpenAI (`text-embedding-3-small` 1536-d + `gpt-4o-mini`); Azure OpenAI via the same interfaces; lexical fallback on quota/error |
+| **Tests & evals** | Unit tests + 14 golden eval cases for cite/refuse/ACL/ticket rules |
 | **Container-ready** | Dockerfile + `docker compose` for the API |
 
 ---
@@ -243,7 +261,7 @@ cd web && npm run dev   # UI still runs locally
 | `bob` | Supervisor, Employee |
 | `admin` | Admin, Supervisor, Employee |
 
-No AI API key is required — default provider is **`Lexical`** (offline keyword matching). Set Azure OpenAI or OpenAI in config / user-secrets to use real embeddings — see `.env.example`.
+No AI API key is required for tests or a local run — default provider is **`Lexical`** (offline keyword matching). For hosted embeddings and generation set `Ai__Provider=OpenAI` and `Ai__OpenAI__ApiKey` in `/opt/apps/env/contoso.env` (production) or user-secrets (local). See `.env.example`. On quota or API error the API falls back to lexical automatically.
 
 ---
 
@@ -278,7 +296,7 @@ cd web && npm run build
 cd web && npm run test:e2e
 ```
 
-Golden evals in `evals/golden.json` guard against regressions in grounding, refusal, ACL, and ticket approval rules.
+Golden evals in `evals/golden.json` guard against regressions in grounding, refusal, ACL, and ticket approval rules. There are **14** question/role cases, including the Employee-cannot-reach-Supervisor leak case and the matching Supervisor-can-reach case. Do not inflate that number.
 
 ---
 
@@ -287,6 +305,12 @@ Golden evals in `evals/golden.json` guard against regressions in grounding, refu
 | Setting | Purpose | Default |
 | --- | --- | --- |
 | `Ai:Provider` | `Lexical`, `AzureOpenAI`, or `OpenAI` | `Lexical` |
+| `Ai:OpenAI:ApiKey` | OpenAI API key (env: `Ai__OpenAI__ApiKey`) | empty |
+| `Ai:OpenAI:ChatModel` | Generation model | `gpt-4o-mini` |
+| `Ai:OpenAI:EmbeddingModel` | Embedding model (1536-d) | `text-embedding-3-small` |
+| `Ai:DailyRequestCeiling` | Hosted asks per UTC day; then lexical fallback | `10` |
+| `Ai:PerIpLimit` | Ask requests per IP per window | `10` |
+| `Ai:PerIpWindowMinutes` | Window for the per-IP limiter | `15` |
 | `Policies:RootPath` | Folder with `*.md` policies | `../../data/policies` |
 | `Rag:TopK` | Chunks retrieved per question | `4` |
 | `Rag:AutoIngestOnStartup` | Index policies on startup | `true` |

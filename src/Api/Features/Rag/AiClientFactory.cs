@@ -6,11 +6,22 @@ using OpenAI.Embeddings;
 
 namespace Contoso.PolicyAssistant.Api.Features.Rag;
 
+public sealed record AiClientSet(
+    IEmbeddingClient Embeddings,
+    IGroundedChatClient Chat,
+    string RequestedProvider,
+    string ActiveProvider,
+    bool HostedConfigured,
+    string EmbeddingModel,
+    string ChatModel,
+    int EmbeddingDimensions);
+
 public static class AiClientFactory
 {
-    public static (IEmbeddingClient Embeddings, IGroundedChatClient Chat, string Mode) Create(IConfiguration config)
+    public static AiClientSet Create(IConfiguration config)
     {
         var requested = (config["Ai:Provider"] ?? "Lexical").Trim();
+        if (string.IsNullOrWhiteSpace(requested)) requested = "Lexical";
 
         if (string.Equals(requested, "AzureOpenAI", StringComparison.OrdinalIgnoreCase))
         {
@@ -24,10 +35,15 @@ public static class AiClientFactory
                 var azure = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
                 EmbeddingClient emb = azure.GetEmbeddingClient(embedDeployment);
                 ChatClient chat = azure.GetChatClient(chatDeployment);
-                return (
-                    new OpenAiEmbeddingClient(emb, "AzureOpenAI"),
-                    new OpenAiGroundedChatClient(chat, "AzureOpenAI"),
-                    "AzureOpenAI");
+                return new AiClientSet(
+                    new OpenAiEmbeddingClient(emb, "AzureOpenAI", embedDeployment),
+                    new OpenAiGroundedChatClient(chat, "AzureOpenAI", chatDeployment),
+                    requested,
+                    "AzureOpenAI",
+                    HostedConfigured: true,
+                    embedDeployment,
+                    chatDeployment,
+                    OpenAiEmbeddingClient.DefaultDimensions);
             }
         }
 
@@ -42,17 +58,26 @@ public static class AiClientFactory
             if (!string.IsNullOrWhiteSpace(apiKey))
             {
                 var openai = new OpenAIClient(apiKey);
-                return (
-                    new OpenAiEmbeddingClient(openai.GetEmbeddingClient(embedModel), "OpenAI"),
-                    new OpenAiGroundedChatClient(openai.GetChatClient(chatModel), "OpenAI"),
-                    "OpenAI");
+                return new AiClientSet(
+                    new OpenAiEmbeddingClient(openai.GetEmbeddingClient(embedModel), "OpenAI", embedModel),
+                    new OpenAiGroundedChatClient(openai.GetChatClient(chatModel), "OpenAI", chatModel),
+                    requested,
+                    "OpenAI",
+                    HostedConfigured: true,
+                    embedModel,
+                    chatModel,
+                    OpenAiEmbeddingClient.DefaultDimensions);
             }
         }
 
-        // Safe default for lab/tests when keys are absent
-        return (
+        return new AiClientSet(
             new LexicalEmbeddingClient(),
             new LexicalGroundedChatClient(),
-            "Lexical");
+            requested,
+            "Lexical",
+            HostedConfigured: false,
+            LexicalEmbeddingClient.Model,
+            LexicalGroundedChatClient.Model,
+            LexicalEmbeddingClient.Dimensions);
     }
 }

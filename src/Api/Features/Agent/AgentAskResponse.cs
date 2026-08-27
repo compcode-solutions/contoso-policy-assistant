@@ -14,6 +14,18 @@ public sealed class AgentAskResponse
     public required int StepsUsed { get; init; }
     public required string Phase { get; init; }
     public PendingApprovalDto? PendingApproval { get; init; }
+    public string Model { get; init; } = "";
+    public int ChunksRetrieved { get; init; }
+    public int ChunksFilteredByRole { get; init; }
+    public int CorpusCount { get; init; }
+    public int VisibleBeforeScoring { get; init; }
+    public int PromptTokens { get; init; }
+    public int CompletionTokens { get; init; }
+    public int EmbeddingTokens { get; init; }
+    public int TotalTokens { get; init; }
+    public int LatencyMs { get; init; }
+    public bool Fallback { get; init; }
+    public string? FallbackReason { get; init; }
     public string Note { get; init; } = string.Empty;
 }
 

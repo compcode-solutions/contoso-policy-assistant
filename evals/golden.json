@@ -28,6 +28,12 @@
     "expectGrounded": false
   },
   {
+    "id": "refuse-weather",
+    "question": "Will it rain in Bengaluru tomorrow?",
+    "roles": ["Employee"],
+    "expectGrounded": false
+  },
+  {
     "id": "employee-no-safety-leak",
     "question": "What is the workplace safety escalation Priority-1 ticket process?",
     "roles": ["Employee"],
@@ -44,6 +50,22 @@
     "expectCitationFileContains": "safety"
   },
   {
+    "id": "employee-no-overtime-approval-leak",
+    "question": "What overtime percentage may a supervisor approve for plant shutdown recovery and the weekly overtime dashboard?",
+    "roles": ["Employee"],
+    "expectGrounded": false,
+    "forbidAnswerContainsAny": ["Operations Director", "10%"],
+    "forbidCitationFileContains": "overtime-approval"
+  },
+  {
+    "id": "supervisor-overtime-approval",
+    "question": "What overtime percentage may a supervisor approve, and who signs off plant shutdown recovery overtime?",
+    "roles": ["Supervisor", "Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["10%", "10", "Operations Director"],
+    "expectCitationFileContains": "overtime-approval"
+  },
+  {
     "id": "laptop-policy",
     "question": "Can I install personal software on my company laptop?",
     "roles": ["Employee"],
@@ -58,5 +80,27 @@
     "expectGrounded": true,
     "expectAnswerContainsAny": ["travel desk", "200", "$200", "Hotel"],
     "expectCitationFileContains": "travel"
+  },
+  {
+    "id": "remote-work-days",
+    "question": "How many remote days per week are allowed?",
+    "roles": ["Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["three", "3"],
+    "expectCitationFileContains": "remote"
+  },
+  {
+    "id": "volunteer-time",
+    "question": "How much volunteer time do full-time staff get each year?",
+    "roles": ["Employee"],
+    "expectGrounded": true,
+    "expectAnswerContainsAny": ["one working day", "one day", "1"],
+    "expectCitationFileContains": "volunteer"
+  },
+  {
+    "id": "refuse-lottery",
+    "question": "What are this week's lottery numbers?",
+    "roles": ["Employee"],
+    "expectGrounded": false
   }
 ]

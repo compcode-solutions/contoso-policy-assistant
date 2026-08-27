@@ -22,10 +22,13 @@ public class GoldenEvalTests
         var cases = JsonSerializer.Deserialize<List<GoldenCase>>(
             await File.ReadAllTextAsync(goldenPath), JsonOpts) ?? [];
 
-        Assert.True(cases.Count >= 8, "Expected at least 8 golden cases");
+        Assert.True(cases.Count >= 12, $"Expected at least 12 golden cases, found {cases.Count}");
+        Assert.Contains(cases, g => g.Id == "employee-no-safety-leak");
+        Assert.Contains(cases, g => g.Id == "supervisor-safety");
 
         var handler = await BuildHandlerFromPoliciesAsync();
         var failures = new List<string>();
+        var passed = 0;
 
         foreach (var g in cases)
         {
@@ -73,9 +76,14 @@ public class GoldenEvalTests
             {
                 failures.Add($"{g.Id}: citation leaked file '{g.ForbidCitationFileContains}'");
             }
+
+            if (failures.Count == 0 || failures.TrueForAll(f => !f.StartsWith(g.Id + ":", StringComparison.Ordinal)))
+                passed++;
         }
 
-        Assert.True(failures.Count == 0, "Golden eval failures:\n" + string.Join('\n', failures));
+        Assert.True(
+            failures.Count == 0,
+            $"Golden evals {passed}/{cases.Count} passed. Failures:\n" + string.Join('\n', failures));
     }
 
     private static async Task<AskQuestionHandler> BuildHandlerFromPoliciesAsync()

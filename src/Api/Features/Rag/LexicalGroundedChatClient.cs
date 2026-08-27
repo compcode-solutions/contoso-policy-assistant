@@ -21,31 +21,34 @@ public sealed class LexicalGroundedChatClient : IGroundedChatClient
         "too", "very", "contoso", "policy", "policies"
     };
 
-    public string ProviderName => "Lexical";
+    public const string Model = "lexical-extractive";
 
-    public Task<string> AnswerAsync(
+    public string ProviderName => "Lexical";
+    public string ModelName => Model;
+
+    public Task<GroundedChatResult> AnswerAsync(
         string question,
         IReadOnlyList<RetrievedChunk> context,
         CancellationToken ct = default)
     {
         if (context.Count == 0)
         {
-            return Task.FromResult(
-                "I don't know based on the policies I can access. Please ask about Contoso leave, expenses, travel, laptops, or (if you're a supervisor) safety escalation.");
+            return Task.FromResult(Wrap(
+                "I don't know based on the policies I can access. Please ask about Contoso leave, expenses, travel, laptops, or (if you're a supervisor) safety escalation."));
         }
 
         var qTokens = Tokenize(question);
         if (qTokens.Count == 0)
         {
-            return Task.FromResult("I don't know based on the available policies.");
+            return Task.FromResult(Wrap("I don't know based on the available policies."));
         }
 
         // Chunk-level gate: at least one retrieved chunk must share 2+ content tokens
         var bestChunkOverlap = context.Max(h => OverlapScore(qTokens, Tokenize(h.Chunk.Text)));
         if (bestChunkOverlap < 2)
         {
-            return Task.FromResult(
-                "I don't know based on the available policy context. Try a more specific Contoso policy question.");
+            return Task.FromResult(Wrap(
+                "I don't know based on the available policy context. Try a more specific Contoso policy question."));
         }
 
         var bestSentences = new List<(int N, string Sentence, int Score)>();
@@ -78,13 +81,21 @@ public sealed class LexicalGroundedChatClient : IGroundedChatClient
 
         if (picked.Count == 0)
         {
-            return Task.FromResult(
-                "I don't know based on the available policy context. Try a more specific Contoso policy question.");
+            return Task.FromResult(Wrap(
+                "I don't know based on the available policy context. Try a more specific Contoso policy question."));
         }
 
         var parts = picked.Select(p => $"{p.Sentence.TrimEnd('.')} [{p.N}].");
-        return Task.FromResult(string.Join(' ', parts));
+        return Task.FromResult(Wrap(string.Join(' ', parts)));
     }
+
+    private static GroundedChatResult Wrap(string text) => new()
+    {
+        Text = text,
+        Model = Model,
+        PromptTokens = 0,
+        CompletionTokens = 0
+    };
 
     internal static HashSet<string> Tokenize(string text) =>
         text.ToLowerInvariant()

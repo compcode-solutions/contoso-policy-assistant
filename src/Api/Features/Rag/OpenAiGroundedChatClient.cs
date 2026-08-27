@@ -3,18 +3,24 @@ using OpenAI.Chat;
 
 namespace Contoso.PolicyAssistant.Api.Features.Rag;
 
-public sealed class OpenAiGroundedChatClient(ChatClient client, string providerName) : IGroundedChatClient
+public sealed class OpenAiGroundedChatClient(ChatClient client, string providerName, string modelName)
+    : IGroundedChatClient
 {
     public string ProviderName { get; } = providerName;
+    public string ModelName { get; } = modelName;
 
-    public async Task<string> AnswerAsync(
+    public async Task<GroundedChatResult> AnswerAsync(
         string question,
         IReadOnlyList<RetrievedChunk> context,
         CancellationToken ct = default)
     {
         if (context.Count == 0)
         {
-            return "I don't know based on the policies I can access.";
+            return new GroundedChatResult
+            {
+                Text = "I don't know based on the policies I can access.",
+                Model = ModelName
+            };
         }
 
         var sb = new StringBuilder();
@@ -47,6 +53,14 @@ public sealed class OpenAiGroundedChatClient(ChatClient client, string providerN
         };
 
         var completion = await client.CompleteChatAsync(messages, cancellationToken: ct);
-        return completion.Value.Content[0].Text.Trim();
+        var value = completion.Value;
+        var usage = value.Usage;
+        return new GroundedChatResult
+        {
+            Text = value.Content[0].Text.Trim(),
+            Model = string.IsNullOrWhiteSpace(value.Model) ? ModelName : value.Model,
+            PromptTokens = usage?.InputTokenCount ?? 0,
+            CompletionTokens = usage?.OutputTokenCount ?? 0
+        };
     }
 }

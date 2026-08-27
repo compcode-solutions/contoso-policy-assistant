@@ -17,6 +17,10 @@ public sealed class AiCallRecord
     public string? InputPreview { get; init; }
     public string? OutputPreview { get; init; }
     public int? DurationMs { get; init; }
+    public int? PromptTokens { get; init; }
+    public int? CompletionTokens { get; init; }
+    public int? EmbeddingTokens { get; init; }
+    public int? TotalTokens { get; init; }
     public Dictionary<string, string>? Meta { get; init; }
 }
 
@@ -48,6 +52,10 @@ public sealed class AiCallLogger(IHostEnvironment env, ILogger<AiCallLogger> log
                 inputPreview = Redact(Truncate(record.InputPreview, 800)),
                 outputPreview = Redact(Truncate(record.OutputPreview, 800)),
                 durationMs = record.DurationMs,
+                promptTokens = record.PromptTokens,
+                completionTokens = record.CompletionTokens,
+                embeddingTokens = record.EmbeddingTokens,
+                totalTokens = record.TotalTokens,
                 meta = record.Meta
             };
 
