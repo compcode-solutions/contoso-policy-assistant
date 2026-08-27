@@ -341,7 +341,8 @@ public sealed class AskQuestionHandler
     private bool IsHostedIndex()
     {
         var p = _store.Provider;
-        return string.Equals(p, "OpenAI", StringComparison.OrdinalIgnoreCase)
+        return string.Equals(p, "Gemini", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "OpenAI", StringComparison.OrdinalIgnoreCase)
             || string.Equals(p, "AzureOpenAI", StringComparison.OrdinalIgnoreCase);
     }
 

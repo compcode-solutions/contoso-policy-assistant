@@ -58,7 +58,7 @@ test("Bob: escalate proposes ticket, approve writes it", async ({ page }) => {
 
   await expect(page.getByText("Workplace Safety Escalation")).toBeVisible();
 
-  await page.getByRole("button", { name: "Escalate + create ticket (HITL)" }).click();
+  await page.getByRole("button", { name: "Escalate + create ticket (needs approval)" }).click();
   await page.getByRole("button", { name: "Ask agent" }).click();
 
   await expect(page.getByRole("heading", { name: /Pending approval/ })).toBeVisible({

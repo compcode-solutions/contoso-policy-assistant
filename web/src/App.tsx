@@ -648,7 +648,7 @@ export default function App() {
                     )
                   }
                 >
-                  Escalate + create ticket (HITL)
+                  Escalate + create ticket (needs approval)
                 </button>
               </li>
               <li>
@@ -676,11 +676,11 @@ export default function App() {
         </p>
         <p>
           <strong>Stack (this demo):</strong> .NET 8 Web API · React + Vite ·
-          OpenAI <code>text-embedding-3-small</code> (1536-d) +{" "}
-          <code>gpt-4o-mini</code> when a key is configured, with automatic
-          fallback to local lexical retrieval (hashed bag-of-words, 256-d) on
-          daily quota or API error · JWT roles. No Temporal, LangGraph, or
-          pgvector.
+          Gemini <code>gemini-embedding-001</code> (768-d) +{" "}
+          <code>gemini-2.5-flash-lite</code> when a key is configured, with
+          automatic fallback to local lexical retrieval (hashed bag-of-words,
+          256-d) on daily quota or API error · JWT roles. No Temporal,
+          LangGraph, or pgvector.
         </p>
         <p>
           <strong>Engineering choice:</strong> access control is applied{" "}

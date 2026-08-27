@@ -100,6 +100,106 @@ public class RagPipelineTests
         Assert.Contains(hits.Hits, h => h.Chunk.FileName == "leave-policy.md");
     }
 
+    [Fact]
+    public void Employee_retrieval_excludes_supervisor_chunk_gemini_shaped_vectors()
+    {
+        // Same ACL-before-scoring path with 768-dim vectors (gemini-embedding-001 Matryoshka width).
+        // Retrieval and the role filter are untouched — only the vector length changes.
+        const int dims = GeminiEmbeddingClient.DefaultDimensions;
+        var leave = PadTo(LexicalEmbeddingClient.Embed("employees receive 20 days of paid annual leave"), dims);
+        var safety = PadTo(LexicalEmbeddingClient.Embed("escalate Priority-1 ticket safety incident supervisors"), dims);
+
+        var store = new InMemoryVectorStore();
+        store.ReplaceAll(
+        [
+            new PolicyChunk
+            {
+                Id = "leave:0",
+                DocumentId = "leave",
+                Title = "Leave Policy",
+                FileName = "leave-policy.md",
+                AllowedRoles = ["Employee", "Supervisor"],
+                Text = "Full-time employees receive 20 days of paid annual leave per calendar year.",
+                Embedding = leave,
+                LexicalEmbedding = LexicalEmbeddingClient.Embed("employees receive 20 days of paid annual leave")
+            },
+            new PolicyChunk
+            {
+                Id = "safety:0",
+                DocumentId = "safety",
+                Title = "Workplace Safety Escalation",
+                FileName = "safety-escalate.md",
+                AllowedRoles = ["Supervisor", "Admin"],
+                Text = "Escalate by creating a Priority-1 ticket for safety incidents.",
+                Embedding = safety,
+                LexicalEmbedding = LexicalEmbeddingClient.Embed("escalate Priority-1 ticket safety incident supervisors")
+            }
+        ], "Gemini");
+
+        var q = PadTo(LexicalEmbeddingClient.Embed("How many leave days do employees get?"), dims);
+        var hits = store.Search(q, ["Employee"], topK: 4, minScore: 0.05f);
+
+        Assert.Equal(1, hits.FilteredByRole);
+        Assert.DoesNotContain(hits.Hits, h => h.Chunk.FileName == "safety-escalate.md");
+        Assert.Contains(hits.Hits, h => h.Chunk.FileName == "leave-policy.md");
+    }
+
+    [Fact]
+    public void Dual_vector_fallback_does_not_mix_gemini_768_with_lexical_256()
+    {
+        // 041 stores a 256-d lexical vector beside the hosted embedding so fallback
+        // never cosine-compares across widths. Confirm that still holds at 768-d.
+        const int hostedDims = GeminiEmbeddingClient.DefaultDimensions;
+        var leaveLex = LexicalEmbeddingClient.Embed("employees receive 20 days of paid annual leave");
+        var safetyLex = LexicalEmbeddingClient.Embed("escalate Priority-1 ticket safety incident supervisors");
+        Assert.Equal(256, leaveLex.Length);
+        Assert.Equal(hostedDims, PadTo(leaveLex, hostedDims).Length);
+
+        var store = new InMemoryVectorStore();
+        store.ReplaceAll(
+        [
+            new PolicyChunk
+            {
+                Id = "leave:0",
+                DocumentId = "leave",
+                Title = "Leave Policy",
+                FileName = "leave-policy.md",
+                AllowedRoles = ["Employee", "Supervisor"],
+                Text = "Full-time employees receive 20 days of paid annual leave per calendar year.",
+                Embedding = PadTo(leaveLex, hostedDims),
+                LexicalEmbedding = leaveLex
+            },
+            new PolicyChunk
+            {
+                Id = "safety:0",
+                DocumentId = "safety",
+                Title = "Workplace Safety Escalation",
+                FileName = "safety-escalate.md",
+                AllowedRoles = ["Supervisor", "Admin"],
+                Text = "Escalate by creating a Priority-1 ticket for safety incidents.",
+                Embedding = PadTo(safetyLex, hostedDims),
+                LexicalEmbedding = safetyLex
+            }
+        ], "Gemini");
+
+        var qHosted = PadTo(LexicalEmbeddingClient.Embed("How many leave days do employees get?"), hostedDims);
+        var qLex = LexicalEmbeddingClient.Embed("How many leave days do employees get?");
+
+        // Mixing 768-d query with 256-d lexical rows scores 0 (length mismatch) —
+        // that is why fallback must pass useLexicalVectors with a 256-d query.
+        var mixed = store.Search(qHosted, ["Employee"], topK: 4, minScore: 0.05f, useLexicalVectors: true);
+        Assert.Equal(1, mixed.FilteredByRole);
+        Assert.Empty(mixed.Hits);
+
+        var hosted = store.Search(qHosted, ["Employee"], topK: 4, minScore: 0.05f, useLexicalVectors: false);
+        Assert.DoesNotContain(hosted.Hits, h => h.Chunk.FileName == "safety-escalate.md");
+        Assert.Contains(hosted.Hits, h => h.Chunk.FileName == "leave-policy.md");
+
+        var lexical = store.Search(qLex, ["Employee"], topK: 4, minScore: 0.05f, useLexicalVectors: true);
+        Assert.DoesNotContain(lexical.Hits, h => h.Chunk.FileName == "safety-escalate.md");
+        Assert.Contains(lexical.Hits, h => h.Chunk.FileName == "leave-policy.md");
+    }
+
     private static float[] PadTo(float[] src, int dims)
     {
         var v = new float[dims];

@@ -20,8 +20,32 @@ public static class AiClientFactory
 {
     public static AiClientSet Create(IConfiguration config)
     {
-        var requested = (config["Ai:Provider"] ?? "Lexical").Trim();
-        if (string.IsNullOrWhiteSpace(requested)) requested = "Lexical";
+        var requested = (config["Ai:Provider"] ?? "Gemini").Trim();
+        if (string.IsNullOrWhiteSpace(requested)) requested = "Gemini";
+
+        if (string.Equals(requested, "Gemini", StringComparison.OrdinalIgnoreCase))
+        {
+            var apiKey = config["Ai:Gemini:ApiKey"]
+                ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            var chatModel = config["Ai:Gemini:ChatModel"] ?? GeminiGroundedChatClient.DefaultModel;
+            var embedModel = config["Ai:Gemini:EmbeddingModel"] ?? GeminiEmbeddingClient.DefaultModel;
+
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+                return new AiClientSet(
+                    new GeminiEmbeddingClient(http, apiKey, embedModel, GeminiEmbeddingClient.DefaultDimensions),
+                    new GeminiGroundedChatClient(http, apiKey, chatModel),
+                    requested,
+                    "Gemini",
+                    HostedConfigured: true,
+                    embedModel,
+                    chatModel,
+                    GeminiEmbeddingClient.DefaultDimensions);
+            }
+
+            return Lexical(requested);
+        }
 
         if (string.Equals(requested, "AzureOpenAI", StringComparison.OrdinalIgnoreCase))
         {
@@ -70,7 +94,11 @@ public static class AiClientFactory
             }
         }
 
-        return new AiClientSet(
+        return Lexical(requested);
+    }
+
+    private static AiClientSet Lexical(string requested) =>
+        new(
             new LexicalEmbeddingClient(),
             new LexicalGroundedChatClient(),
             requested,
@@ -79,5 +107,4 @@ public static class AiClientFactory
             LexicalEmbeddingClient.Model,
             LexicalGroundedChatClient.Model,
             LexicalEmbeddingClient.Dimensions);
-    }
 }

@@ -4,11 +4,11 @@ public sealed class AiOptions
 {
     public const string SectionName = "Ai";
 
-    /// <summary>Lexical, OpenAI, or AzureOpenAI.</summary>
-    public string Provider { get; set; } = "Lexical";
+    /// <summary>Gemini, Lexical, OpenAI, or AzureOpenAI.</summary>
+    public string Provider { get; set; } = "Gemini";
 
     /// <summary>
-    /// Global cap on hosted (OpenAI/Azure) ask requests per UTC day.
+    /// Global cap on hosted (Gemini/OpenAI/Azure) ask requests per UTC day.
     /// Config value, not a hardcoded constant. Lexical fallback is used after this.
     /// </summary>
     public int DailyRequestCeiling { get; set; } = 10;
@@ -21,6 +21,7 @@ public sealed class AiOptions
 
     public AzureOpenAiOptions AzureOpenAI { get; set; } = new();
     public OpenAiOptions OpenAI { get; set; } = new();
+    public GeminiOptions Gemini { get; set; } = new();
 }
 
 public sealed class AzureOpenAiOptions
@@ -36,4 +37,11 @@ public sealed class OpenAiOptions
     public string ApiKey { get; set; } = "";
     public string ChatModel { get; set; } = "gpt-4o-mini";
     public string EmbeddingModel { get; set; } = "text-embedding-3-small";
+}
+
+public sealed class GeminiOptions
+{
+    public string ApiKey { get; set; } = "";
+    public string ChatModel { get; set; } = GeminiGroundedChatClient.DefaultModel;
+    public string EmbeddingModel { get; set; } = GeminiEmbeddingClient.DefaultModel;
 }

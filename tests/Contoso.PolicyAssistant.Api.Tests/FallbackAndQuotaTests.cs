@@ -1,5 +1,6 @@
 using Contoso.PolicyAssistant.Api.Features.Ask;
 using Contoso.PolicyAssistant.Api.Features.Rag;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -79,6 +80,26 @@ public class FallbackAndQuotaTests
             result.Citations,
             c => c.Title.Contains("safety", StringComparison.OrdinalIgnoreCase));
         Assert.True(result.ChunksFilteredByRole >= 1);
+    }
+
+    [Fact]
+    public void Factory_gemini_without_key_stays_lexical()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Ai:Provider"] = "Gemini"
+            })
+            .Build();
+
+        var set = AiClientFactory.Create(config);
+
+        Assert.Equal("Gemini", set.RequestedProvider);
+        Assert.Equal("Lexical", set.ActiveProvider);
+        Assert.False(set.HostedConfigured);
+        Assert.Equal("gemini-embedding-001", GeminiEmbeddingClient.DefaultModel);
+        Assert.Equal(768, GeminiEmbeddingClient.DefaultDimensions);
+        Assert.Equal("gemini-2.5-flash-lite", GeminiGroundedChatClient.DefaultModel);
     }
 
     private static AskQuestionHandler BuildHandler(

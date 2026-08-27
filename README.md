@@ -20,7 +20,7 @@ Proved both directions in [`RagPipelineTests.cs`](tests/Contoso.PolicyAssistant.
 
 [**Live demo**](https://policy.compcodesolutions.com) — sign in as three different users, ask the same question, compare what comes back.
 
-> The public instance uses **OpenAI** when `Ai__OpenAI__ApiKey` is set: embeddings via `text-embedding-3-small` (**1536 dimensions**), answers via `gpt-4o-mini`. On daily quota (config `Ai__DailyRequestCeiling`, default 10) or API error it **falls back to lexical** retrieval (hashed bag-of-words, 256-d) so the demo degrades rather than breaking. The access-control path is identical either way — `Search` filters by role **before** cosine similarity and does not know where the vector came from. At corpus sizes beyond in-memory, the same principle moves into the store: `WHERE allowed_roles && $roles` evaluated *before* the ANN index ranks, rather than filtering its output.
+> The public instance uses **Gemini** when `Ai__Gemini__ApiKey` is set: embeddings via `gemini-embedding-001` (**768 dimensions**, Matryoshka), answers via `gemini-2.5-flash-lite` (free tier). OpenAI and Azure OpenAI remain behind the same interfaces. On daily quota (config `Ai__DailyRequestCeiling`, default 10) or API error it **falls back to lexical** retrieval (hashed bag-of-words, 256-d) so the demo degrades rather than breaking. The access-control path is identical either way — `Search` filters by role **before** cosine similarity and does not know where the vector came from. At corpus sizes beyond in-memory, the same principle moves into the store: `WHERE allowed_roles && $roles` evaluated *before* the ANN index ranks, rather than filtering its output.
 
 Written up in full: [Why filtering RAG results after retrieval leaks data](https://compcodesolutions.com/blog/access-control-before-retrieval)
 
@@ -50,7 +50,7 @@ In short: grounded Q&A over documents, security by role, and human-in-the-loop f
 | **Refusal** | No matching context → “I don’t know”, not a hallucination |
 | **Role-based ACL** | Documents filtered **before** search — the model never sees forbidden content |
 | **Agent + HITL** | `create_ticket` is proposed, then Approve/Reject — no auto-write |
-| **Swappable AI** | OpenAI (`text-embedding-3-small` 1536-d + `gpt-4o-mini`); Azure OpenAI via the same interfaces; lexical fallback on quota/error |
+| **Swappable AI** | Gemini (`gemini-embedding-001` 768-d + `gemini-2.5-flash-lite`); OpenAI; Azure OpenAI; lexical fallback on quota/error |
 | **Tests & evals** | Unit tests + 14 golden eval cases for cite/refuse/ACL/ticket rules |
 | **Container-ready** | Dockerfile + `docker compose` for the API |
 
@@ -261,7 +261,7 @@ cd web && npm run dev   # UI still runs locally
 | `bob` | Supervisor, Employee |
 | `admin` | Admin, Supervisor, Employee |
 
-No AI API key is required for tests or a local run — default provider is **`Lexical`** (offline keyword matching). For hosted embeddings and generation set `Ai__Provider=OpenAI` and `Ai__OpenAI__ApiKey` in `/opt/apps/env/contoso.env` (production) or user-secrets (local). See `.env.example`. On quota or API error the API falls back to lexical automatically.
+No AI API key is required for tests or a local run — requested provider is **`Gemini`**, but with an empty key the factory stays on **Lexical** (offline keyword matching). For hosted embeddings and generation paste `Ai__Gemini__ApiKey` into `/opt/apps/env/contoso.env` (production) or `dotnet user-secrets set "Ai:Gemini:ApiKey"` from `src/Api` (local). See `.env.example`. On quota or API error the API falls back to lexical automatically.
 
 ---
 
@@ -304,7 +304,10 @@ Golden evals in `evals/golden.json` guard against regressions in grounding, refu
 
 | Setting | Purpose | Default |
 | --- | --- | --- |
-| `Ai:Provider` | `Lexical`, `AzureOpenAI`, or `OpenAI` | `Lexical` |
+| `Ai:Provider` | `Gemini`, `Lexical`, `OpenAI`, or `AzureOpenAI` | `Gemini` |
+| `Ai:Gemini:ApiKey` | Gemini API key (env: `Ai__Gemini__ApiKey`) | empty |
+| `Ai:Gemini:ChatModel` | Generation model (free tier) | `gemini-2.5-flash-lite` |
+| `Ai:Gemini:EmbeddingModel` | Embedding model (768-d) | `gemini-embedding-001` |
 | `Ai:OpenAI:ApiKey` | OpenAI API key (env: `Ai__OpenAI__ApiKey`) | empty |
 | `Ai:OpenAI:ChatModel` | Generation model | `gpt-4o-mini` |
 | `Ai:OpenAI:EmbeddingModel` | Embedding model (1536-d) | `text-embedding-3-small` |
