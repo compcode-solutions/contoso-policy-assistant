@@ -13,7 +13,8 @@
 web/
 tests/
 docs/
-evals/
+evals/*
+!evals/golden.json
 scripts/
 *.md
 !README.md
