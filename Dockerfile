@@ -24,6 +24,7 @@ ENV ASPNETCORE_URLS=http://+:8080 \
 
 COPY --from=build /app/publish .
 COPY data/policies/ /app/data/policies/
+COPY evals/golden.json /app/evals/golden.json
 
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Contoso.PolicyAssistant.Api.dll"]

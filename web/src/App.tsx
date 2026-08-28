@@ -89,6 +89,40 @@ type ProblemDetails = {
   errors?: Record<string, string[]>;
 };
 
+type GoldenCaseView = {
+  id: string;
+  question: string;
+  roles: string[];
+  leakCase: boolean;
+  asserts: string;
+};
+
+type GoldenCaseRun = {
+  id: string;
+  passed: boolean;
+  failures: string[];
+  grounded: boolean;
+  leakCase: boolean;
+};
+
+type GoldenEvalRunResult = {
+  ranUtc: string;
+  latencyMs: number;
+  passed: number;
+  total: number;
+  model: string;
+  provider: string;
+  cached: boolean;
+  rateLimited: boolean;
+  rateLimitNote?: string | null;
+  cases: GoldenCaseRun[];
+};
+
+type GoldenEvalSnapshot = {
+  cases: GoldenCaseView[];
+  lastRun: GoldenEvalRunResult | null;
+};
+
 function loadSession(): Session | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -135,6 +169,11 @@ export default function App() {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [tickets, setTickets] = useState<TicketRow[]>([]);
 
+  const [evalCases, setEvalCases] = useState<GoldenCaseView[]>([]);
+  const [evalRun, setEvalRun] = useState<GoldenEvalRunResult | null>(null);
+  const [evalError, setEvalError] = useState<string | null>(null);
+  const [evalRunning, setEvalRunning] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -161,6 +200,49 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/evals/golden`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as GoldenEvalSnapshot;
+        if (!cancelled) {
+          setEvalCases(data.cases ?? []);
+          setEvalRun(data.lastRun);
+          setEvalError(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setEvalError(
+            e instanceof Error ? e.message : "Could not load safety tests",
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function runSafetyTests() {
+    setEvalRunning(true);
+    setEvalError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/evals/run`, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as GoldenEvalSnapshot;
+      setEvalCases(data.cases ?? evalCases);
+      setEvalRun(data.lastRun);
+    } catch (e) {
+      setEvalError(
+        e instanceof Error ? e.message : "Could not run safety tests",
+      );
+    } finally {
+      setEvalRunning(false);
+    }
+  }
 
   useEffect(() => {
     if (!session) {
@@ -376,6 +458,8 @@ export default function App() {
           Escalations require supervisor approval before a ticket is created.
         </p>
         <p className="how-link">
+          <a href="#safety-tests">Run the safety tests</a>
+          {" · "}
           <a href="#how-it-works">How it works</a>
         </p>
         {session ? (
@@ -388,6 +472,76 @@ export default function App() {
           </p>
         ) : null}
       </header>
+
+      <section id="safety-tests" className="card">
+        <h2>Run the safety tests</h2>
+        <p className="meta">
+          The same 14 golden cases CI runs — lexical retrieval with ACL applied
+          before scoring. The two leak cases are the ones that matter: an
+          employee must not see supervisor-only content.
+        </p>
+        {evalRun ? (
+          <p className={evalRun.passed === evalRun.total ? "ok" : "err"}>
+            Last run: <strong>{evalRun.passed}/{evalRun.total} passed</strong>
+            {" · "}
+            Answered by <strong>{evalRun.model}</strong>
+            {" · "}
+            {evalRun.latencyMs} ms
+            {" · "}
+            {new Date(evalRun.ranUtc).toISOString().replace("T", " ").slice(0, 19)} UTC
+            {evalRun.cached ? " · cached" : ""}
+          </p>
+        ) : (
+          <p className="meta">No run cached yet — click the button.</p>
+        )}
+        {evalRun?.rateLimited ? (
+          <p className="hint">{evalRun.rateLimitNote}</p>
+        ) : null}
+        <div className="login-row">
+          <button type="button" disabled={evalRunning} onClick={() => void runSafetyTests()}>
+            {evalRunning ? "Running…" : "Run the safety tests"}
+          </button>
+        </div>
+        {evalError ? <p className="err">{evalError}</p> : null}
+        <ol className="eval-list">
+          {evalCases.map((c) => {
+            const run = evalRun?.cases.find((r) => r.id === c.id);
+            const mark =
+              run == null ? "—" : run.passed ? "pass" : "fail";
+            return (
+              <li
+                key={c.id}
+                className={
+                  c.leakCase ? "eval-item leak-case" : "eval-item"
+                }
+              >
+                <div className="eval-head">
+                  <code>{c.id}</code>
+                  {c.leakCase ? (
+                    <span className="leak-badge">leak case — the one that matters</span>
+                  ) : null}
+                  <span
+                    className={
+                      mark === "pass"
+                        ? "badge ok-badge"
+                        : mark === "fail"
+                          ? "badge warn-badge"
+                          : "badge"
+                    }
+                  >
+                    {mark}
+                  </span>
+                </div>
+                <p className="eval-q">“{c.question}”</p>
+                <p className="meta">{c.asserts}</p>
+                {run && !run.passed && run.failures.length > 0 ? (
+                  <p className="err">{run.failures.join("; ")}</p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
 
       <section className="card visitor-hidden">
         <h2>API status</h2>

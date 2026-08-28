@@ -352,7 +352,61 @@ code {
   text-align: left;
 }
 
+.eval-list {
+  margin: 0.85rem 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.eval-item {
+  margin: 0 0 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.eval-item.leak-case {
+  border-color: #c45c26;
+  background: #fff8f3;
+}
+
+.eval-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+}
+
+.eval-q {
+  margin: 0.35rem 0 0.2rem;
+  font-size: 0.95rem;
+}
+
+.leak-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #9b3b12;
+  background: #fde7d8;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+
 @media (prefers-color-scheme: dark) {
+  .eval-item {
+    background: #161616;
+    border-color: #333;
+  }
+  .eval-item.leak-case {
+    background: #2a1a12;
+    border-color: #c45c26;
+  }
+  .leak-badge {
+    background: #4a2414;
+    color: #ffc19a;
+  }
   .ask-form textarea {
     background: #111;
     border-color: #444;

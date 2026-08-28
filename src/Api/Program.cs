@@ -4,6 +4,7 @@ using System.Threading.RateLimiting;
 using Contoso.PolicyAssistant.Api.Features.Agent;
 using Contoso.PolicyAssistant.Api.Features.Ask;
 using Contoso.PolicyAssistant.Api.Features.Auth;
+using Contoso.PolicyAssistant.Api.Features.Evals;
 using Contoso.PolicyAssistant.Api.Features.Logging;
 using Contoso.PolicyAssistant.Api.Features.Policies;
 using Contoso.PolicyAssistant.Api.Features.Rag;
@@ -149,6 +150,8 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton<PendingApprovalStore>();
 builder.Services.AddSingleton<TicketStore>();
 builder.Services.AddSingleton<AgentAskHandler>();
+builder.Services.AddSingleton<GoldenEvalService>();
+builder.Services.AddHostedService<GoldenEvalWarmup>();
 
 var corsOrigins = new List<string>
 {
@@ -247,6 +250,25 @@ app.MapGet("/health", (InMemoryVectorStore store, TicketStore tickets, PendingAp
 }))
 .WithName("Health")
 .WithTags("Ops")
+.AllowAnonymous();
+
+app.MapGet("/api/evals/golden", (GoldenEvalService evals) => Results.Ok(evals.Snapshot()))
+.WithName("GoldenEvals")
+.WithTags("Evals")
+.AllowAnonymous();
+
+app.MapPost("/api/evals/run", (GoldenEvalService evals, HttpContext http) =>
+{
+    var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    var result = evals.Run(ip);
+    return Results.Ok(new
+    {
+        cases = evals.ListCases(),
+        lastRun = result
+    });
+})
+.WithName("RunGoldenEvals")
+.WithTags("Evals")
 .AllowAnonymous();
 
 app.MapGet("/api/info", (InMemoryVectorStore store, DemoQuota quota) => Results.Ok(new
