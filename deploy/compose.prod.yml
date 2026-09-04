@@ -13,9 +13,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       Policies__RootPath: /app/data/policies
       Ai__Provider: Gemini
-      Ai__DailyRequestCeiling: "10"
-      Ai__PerIpLimit: "10"
-      Ai__PerIpWindowMinutes: "15"
+      # Prefer /opt/apps/env/contoso.env; default 8 stays under Gemini free-tier 20 RPD.
+      Ai__DailyRequestCeiling: ${Ai__DailyRequestCeiling:-8}
+      Ai__PerIpLimit: ${Ai__PerIpLimit:-10}
+      Ai__PerIpWindowMinutes: ${Ai__PerIpWindowMinutes:-15}
     networks: [coolify]
     labels:
       - traefik.enable=true
