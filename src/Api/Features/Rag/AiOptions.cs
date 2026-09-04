@@ -9,9 +9,10 @@ public sealed class AiOptions
 
     /// <summary>
     /// Global cap on hosted (Gemini/OpenAI/Azure) ask requests per UTC day.
-    /// Config value, not a hardcoded constant. Lexical fallback is used after this.
+    /// Kept under Gemini free-tier generate RPD (20 for flash-lite) with headroom.
+    /// Lexical / demo-script answers do not consume this quota.
     /// </summary>
-    public int DailyRequestCeiling { get; set; } = 10;
+    public int DailyRequestCeiling { get; set; } = 8;
 
     /// <summary>Per-IP ask requests allowed inside <see cref="PerIpWindowMinutes"/>.</summary>
     public int PerIpLimit { get; set; } = 10;

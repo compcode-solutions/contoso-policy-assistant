@@ -22,7 +22,7 @@ Variable names (values stay on the box):
 
 Default `Ai__Provider` is `Gemini`. Until `Ai__Gemini__ApiKey` is set, the factory stays on **Lexical**. The key lives only in this env file — never in compose or git. Get it from [Google AI Studio](https://aistudio.google.com/apikey) → Get API key (no credit card). `Jwt__Key` is generated on the box (`openssl rand -base64 48`) and is never the compose/Dockerfile default. `Cors__Origins` is the UI origin (`https://policy.compcodesolutions.com`).
 
-The in-app daily ceiling (`Ai__DailyRequestCeiling`, default 10) and per-IP limit (`Ai__PerIpLimit` / `Ai__PerIpWindowMinutes`) are abuse protection, not a spend cap. Gemini free-tier Flash-Lite does not require billing.
+The in-app daily ceiling (`Ai__DailyRequestCeiling`, default 8) and per-IP limit (`Ai__PerIpLimit` / `Ai__PerIpWindowMinutes`) are abuse protection against a crawler burning Gemini free-tier (20 generate RPD on flash-lite). Failed hosted calls refund the in-app counter. Fixed demo questions use a pre-computed answer path and do not consume the ceiling.
 
 After pasting the key, recreate **only** the API (ingest runs on startup; do not bounce other services):
 

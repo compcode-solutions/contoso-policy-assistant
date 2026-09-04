@@ -45,6 +45,19 @@ public sealed class DemoQuota
         }
     }
 
+    /// <summary>
+    /// Undo a reservation when the hosted provider failed before a usable answer.
+    /// Stops a 429/outage from burning the in-app ceiling (and the free-tier day).
+    /// </summary>
+    public void RefundHosted()
+    {
+        lock (_gate)
+        {
+            RollDay();
+            if (_hostedCount > 0) _hostedCount--;
+        }
+    }
+
     private void RollDay()
     {
         var today = DateTime.UtcNow.Date;

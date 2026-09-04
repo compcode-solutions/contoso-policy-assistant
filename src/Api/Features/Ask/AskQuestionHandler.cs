@@ -76,6 +76,13 @@ public sealed class AskQuestionHandler
             return Refuse(question, roleList, "Index empty — call POST /api/ingest first.", sw);
         }
 
+        // Fixed demo questions never call a hosted LLM — ACL proof must work with the provider down.
+        var script = DemoScriptCatalog.TryResolve(question, roleList);
+        if (script is not null)
+        {
+            return await AnswerWithDemoScriptAsync(question, roleList, script, sw, ct);
+        }
+
         if (_hostedConfigured && IsHostedIndex())
         {
             if (!_quota.TryConsumeHosted())
@@ -107,6 +114,7 @@ public sealed class AskQuestionHandler
             }
             catch (Exception ex) when (IsProviderFailure(ex, ct))
             {
+                _quota.RefundHosted();
                 _aiLog.Log(new AiCallRecord
                 {
                     Operation = "rag.fallback",
@@ -116,7 +124,7 @@ public sealed class AskQuestionHandler
                     DurationMs = (int)sw.ElapsedMilliseconds,
                     Meta = new Dictionary<string, string>
                     {
-                        ["reason"] = "provider-error",
+                        ["reason"] = "local-retrieval",
                         ["roles"] = string.Join(',', roleList)
                     }
                 });
@@ -128,7 +136,7 @@ public sealed class AskQuestionHandler
                     _lexicalChat,
                     useLexicalVectors: true,
                     fallback: true,
-                    fallbackReason: "provider-error",
+                    fallbackReason: "local-retrieval",
                     sw,
                     ct);
             }
@@ -144,6 +152,77 @@ public sealed class AskQuestionHandler
             fallbackReason: null,
             sw,
             ct);
+    }
+
+    private async Task<AskQuestionResponse> AnswerWithDemoScriptAsync(
+        string question,
+        string[] roleList,
+        DemoScriptAnswer script,
+        Stopwatch sw,
+        CancellationToken ct)
+    {
+        var query = await _lexicalEmbeddings.EmbedAsync(question, ct);
+        var retrieval = _store.Search(
+            query.Vector,
+            roleList,
+            _rag.TopK,
+            _rag.MinScore,
+            useLexicalVectors: true);
+
+        _aiLog.Log(new AiCallRecord
+        {
+            Operation = "rag.demo-script",
+            Provider = $"{_lexicalEmbeddings.ProviderName}/{DemoScriptCatalog.ModelName}",
+            InputPreview = question,
+            OutputPreview = script.Answer,
+            DurationMs = (int)sw.ElapsedMilliseconds,
+            EmbeddingTokens = query.TokenCount,
+            Meta = RetrievalMeta(retrieval, roleList, fallback: true, DemoScriptCatalog.FallbackReason, script.Grounded)
+        });
+
+        IReadOnlyList<Citation> citations = [];
+        if (script.Grounded && retrieval.Hits.Count > 0)
+        {
+            IEnumerable<RetrievedChunk> hits = retrieval.Hits;
+            if (!string.IsNullOrWhiteSpace(script.PreferCitationContains))
+            {
+                var preferred = retrieval.Hits.Where(h =>
+                    h.Chunk.FileName.Contains(script.PreferCitationContains, StringComparison.OrdinalIgnoreCase)
+                    || h.Chunk.Title.Contains(script.PreferCitationContains, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (preferred.Count > 0) hits = preferred;
+            }
+
+            citations = hits.Select(h => new Citation
+            {
+                N = h.N,
+                Title = h.Chunk.FileName,
+                Excerpt = Excerpt(h.Chunk.Text, 180)
+            }).ToList();
+        }
+
+        return new AskQuestionResponse
+        {
+            Answer = script.Answer,
+            Citations = citations,
+            Grounded = script.Grounded,
+            Question = question,
+            ReceivedUtc = DateTimeOffset.UtcNow,
+            Phase = "grounded-rag",
+            CallerRoles = roleList,
+            Provider = $"{_lexicalEmbeddings.ProviderName}/{DemoScriptCatalog.ModelName}",
+            Model = DemoScriptCatalog.ModelName,
+            ChunksRetrieved = retrieval.Hits.Count,
+            ChunksFilteredByRole = retrieval.FilteredByRole,
+            CorpusCount = retrieval.CorpusCount,
+            VisibleBeforeScoring = retrieval.VisibleBeforeScoring,
+            EmbeddingTokens = query.TokenCount,
+            TotalTokens = query.TokenCount,
+            LatencyMs = (int)sw.ElapsedMilliseconds,
+            Fallback = true,
+            FallbackReason = DemoScriptCatalog.FallbackReason,
+            Note = DemoScriptCatalog.VisitorBanner
+        };
     }
 
     private async Task<AskQuestionResponse> AnswerWithAsync(
@@ -314,9 +393,14 @@ public sealed class AskQuestionHandler
     }
 
     private static string FallbackNote(string? reason) =>
-        reason == "daily-ceiling"
-            ? "Demo quota reached for today — running on local lexical retrieval."
-            : "Hosted model unavailable — running on local lexical retrieval.";
+        reason switch
+        {
+            DemoScriptCatalog.FallbackReason => DemoScriptCatalog.VisitorBanner,
+            "daily-ceiling" =>
+                "Demo hosted-model quota reached for today — answering with local retrieval.",
+            _ =>
+                "Hosted generation is paused for this answer — retrieval and role filtering are still live."
+        };
 
     private static bool IsProviderFailure(Exception ex, CancellationToken ct)
     {

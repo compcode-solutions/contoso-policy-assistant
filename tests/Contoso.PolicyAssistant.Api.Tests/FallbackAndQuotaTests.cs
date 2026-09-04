@@ -27,13 +27,14 @@ public class FallbackAndQuotaTests
             quota: new DemoQuota(10),
             hostedConfigured: true);
 
+        // Free-form question (not in demo-script catalog) so hosted path is exercised.
         var result = await handler.HandleAsync(
-            new AskQuestionRequest { Question = "How many leave days do I get each year?" },
+            new AskQuestionRequest { Question = "What is the daily meal limit while traveling?" },
             ["Employee"]);
 
         Assert.True(result.Fallback);
-        Assert.Equal("provider-error", result.FallbackReason);
-        Assert.Contains("20", result.Answer);
+        Assert.Equal("local-retrieval", result.FallbackReason);
+        Assert.Contains("60", result.Answer);
         Assert.Contains("lexical", result.Model, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Priority-1", result.Answer, StringComparison.OrdinalIgnoreCase);
     }
@@ -50,13 +51,12 @@ public class FallbackAndQuotaTests
             hostedConfigured: true);
 
         var result = await handler.HandleAsync(
-            new AskQuestionRequest { Question = "How many leave days do I get each year?" },
+            new AskQuestionRequest { Question = "What is the daily meal limit while traveling?" },
             ["Employee"]);
 
         Assert.True(result.Fallback);
         Assert.Equal("daily-ceiling", result.FallbackReason);
-        Assert.Contains("20", result.Answer);
-        Assert.Contains("Demo quota reached", result.Note, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("quota reached", result.Note, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -70,16 +70,55 @@ public class FallbackAndQuotaTests
         var result = await handler.HandleAsync(
             new AskQuestionRequest
             {
-                Question = "What is the workplace safety escalation SOP Priority-1 ticket process?"
+                Question = "What is the workplace safety escalation Priority-1 ticket process?"
             },
             ["Employee"]);
 
         Assert.True(result.Fallback);
+        Assert.Equal(DemoScriptCatalog.FallbackReason, result.FallbackReason);
+        Assert.Equal(DemoScriptCatalog.ModelName, result.Model);
+        Assert.False(result.Grounded);
         Assert.DoesNotContain("Priority-1", result.Answer, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(
             result.Citations,
             c => c.Title.Contains("safety", StringComparison.OrdinalIgnoreCase));
         Assert.True(result.ChunksFilteredByRole >= 1);
+    }
+
+    [Fact]
+    public async Task Demo_script_safety_differs_by_role_without_hosted_provider()
+    {
+        var handler = BuildHandler(
+            hostedEmbeddings: new ThrowingEmbeddingClient(),
+            quota: new DemoQuota(10),
+            hostedConfigured: true);
+
+        var question = "What should a supervisor do after a safety incident?";
+        var employee = await handler.HandleAsync(
+            new AskQuestionRequest { Question = question },
+            ["Employee"]);
+        var supervisor = await handler.HandleAsync(
+            new AskQuestionRequest { Question = question },
+            ["Supervisor", "Employee"]);
+
+        Assert.Equal(DemoScriptCatalog.FallbackReason, employee.FallbackReason);
+        Assert.Equal(DemoScriptCatalog.FallbackReason, supervisor.FallbackReason);
+        Assert.False(employee.Grounded);
+        Assert.DoesNotContain("Priority-1", employee.Answer, StringComparison.OrdinalIgnoreCase);
+        Assert.True(supervisor.Grounded);
+        Assert.Contains("Priority-1", supervisor.Answer, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Safety Officer", supervisor.Answer, StringComparison.OrdinalIgnoreCase);
+        Assert.True(employee.ChunksFilteredByRole >= supervisor.ChunksFilteredByRole);
+    }
+
+    [Fact]
+    public void DemoQuota_refund_restores_capacity_after_failed_hosted_call()
+    {
+        var quota = new DemoQuota(1);
+        Assert.True(quota.TryConsumeHosted());
+        Assert.False(quota.TryConsumeHosted());
+        quota.RefundHosted();
+        Assert.True(quota.TryConsumeHosted());
     }
 
     [Fact]
@@ -114,7 +153,9 @@ public class FallbackAndQuotaTests
         var leaveText =
             "Full-time employees receive 20 days of paid annual leave per calendar year. Leave requests must be submitted at least 5 business days in advance.";
         var safetyText =
-            "Escalate by creating a Priority-1 ticket in the incident system within 1 hour for safety incidents.";
+            "Escalate by creating a Priority-1 ticket in the incident system within 1 hour for safety incidents. Notify the Safety Officer.";
+        var mealText =
+            "While traveling, the daily meal limit is $60 USD unless a higher cap is pre-approved in writing.";
 
         store.ReplaceAll(
         [
@@ -139,6 +180,17 @@ public class FallbackAndQuotaTests
                 Text = safetyText,
                 Embedding = LexicalEmbeddingClient.Embed(safetyText),
                 LexicalEmbedding = LexicalEmbeddingClient.Embed(safetyText)
+            },
+            new PolicyChunk
+            {
+                Id = "expense:0",
+                DocumentId = "expense",
+                Title = "Expense Policy",
+                FileName = "expense-policy.md",
+                AllowedRoles = ["Employee", "Supervisor", "Admin"],
+                Text = mealText,
+                Embedding = LexicalEmbeddingClient.Embed(mealText),
+                LexicalEmbedding = LexicalEmbeddingClient.Embed(mealText)
             }
         ], "OpenAI");
 

@@ -661,9 +661,11 @@ export default function App() {
 
                 {result.fallback ? (
                   <p className="fallback-banner" role="status">
-                    {result.fallbackReason === "daily-ceiling"
-                      ? "Demo quota reached for today — running on local lexical retrieval"
-                      : "Hosted model unavailable — running on local lexical retrieval"}
+                    {result.fallbackReason === "demo-script"
+                      ? "Recorded demo answer — retrieval and role filtering are live; the wording is pre-computed so this proof does not depend on the hosted model."
+                      : result.fallbackReason === "daily-ceiling"
+                        ? "Demo hosted-model quota reached for today — answering with local retrieval."
+                        : "Hosted generation is paused for this answer — retrieval and role filtering are still live."}
                   </p>
                 ) : null}
 
@@ -781,6 +783,19 @@ export default function App() {
           <section className="card">
             <h2>Try these</h2>
             <ul className="samples">
+              <li>
+                <button
+                  type="button"
+                  className="linkish"
+                  onClick={() =>
+                    setQuestion(
+                      "What should a supervisor do after a safety incident?",
+                    )
+                  }
+                >
+                  Safety escalation (compare Alice vs Bob — ACL proof)
+                </button>
+              </li>
               <li>
                 <button
                   type="button"
