@@ -28,16 +28,17 @@ public sealed class AgentAskHandler(
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, opts.TimeoutSeconds)));
         var token = timeout.Token;
 
-        // Step 1 — intent
+        // Step 1 — intent (demo-script ACL questions stay on RAG, never ticket tools)
         steps++;
-        var escalate = EscalateIntentDetector.IsEscalateIntent(question);
+        var demoScript = DemoScriptCatalog.TryResolve(question, roleList) is not null;
+        var escalate = !demoScript && EscalateIntentDetector.IsEscalateIntent(question);
         aiLog.Log(new AiCallRecord
         {
             Operation = "agent.intent",
             Provider = "rules",
             User = username,
             InputPreview = question,
-            OutputPreview = escalate ? "escalate" : "rag",
+            OutputPreview = escalate ? "escalate" : (demoScript ? "demo-script" : "rag"),
             Meta = new Dictionary<string, string> { ["step"] = steps.ToString() }
         });
 

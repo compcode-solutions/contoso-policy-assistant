@@ -12,7 +12,9 @@ public class AgentHitlTests
     public void Detector_finds_escalate_intent()
     {
         Assert.True(EscalateIntentDetector.IsEscalateIntent("Please escalate this safety incident"));
+        Assert.True(EscalateIntentDetector.IsEscalateIntent("Escalate this Priority-1 safety incident at Dock 4"));
         Assert.False(EscalateIntentDetector.IsEscalateIntent("How many leave days do I get?"));
+        Assert.False(EscalateIntentDetector.IsEscalateIntent("What should a supervisor do after a safety incident?"));
     }
 
     [Fact]
