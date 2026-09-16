@@ -84,6 +84,154 @@ h1 {
   margin-top: 0.75rem;
 }
 
+.login-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.login-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #444;
+}
+
+.login-form input {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.login-form button[type="submit"] {
+  padding: 0.55rem 0.85rem;
+  border: none;
+  border-radius: 8px;
+  background: #0f6e56;
+  color: #fff;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.login-form button[type="submit"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.demo-accounts {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.demo-banner {
+  border: 1px solid #cde7df;
+  background: #f1faf6;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+}
+
+.demo-banner-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0f6e56;
+}
+
+.demo-banner-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+}
+
+.demo-banner-password {
+  margin: 0.45rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.demo-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 540px) {
+  .demo-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.demo-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e2e2;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem;
+}
+
+.demo-card-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.demo-card-blurb {
+  margin: 0.25rem 0 0;
+  font-size: 12px;
+  color: #555;
+}
+
+.demo-card-email {
+  margin: 0.5rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.demo-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.demo-fill,
+.demo-signin {
+  flex: 1;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.demo-fill {
+  border: 1px solid #d4d4d4;
+  background: #fff;
+  color: #222;
+}
+
+.demo-signin {
+  border: none;
+  background: #0f6e56;
+  color: #fff;
+}
+
+.demo-fill:disabled,
+.demo-signin:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .login-row button {
   padding: 0.5rem 0.85rem;
   border: 1px solid #0f6e56;

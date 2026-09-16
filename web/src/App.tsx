@@ -150,6 +150,28 @@ function visitorStatusHeading(status: string, grounded: boolean): string {
   return grounded ? "Grounded answer" : "Response";
 }
 
+const DEMO_PASSWORD = "pass";
+const DEMO_ACCOUNTS = [
+  {
+    id: "alice",
+    username: "alice",
+    title: "Employee",
+    blurb: "Sees only the policies her role can read.",
+  },
+  {
+    id: "bob",
+    username: "bob",
+    title: "Supervisor",
+    blurb: "Sees team policies and pending approvals.",
+  },
+  {
+    id: "admin",
+    username: "admin",
+    title: "Admin",
+    blurb: "Full catalogue, tickets and approvals.",
+  },
+] as const;
+
 export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
@@ -157,6 +179,8 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(() => loadSession());
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const [policies, setPolicies] = useState<PolicyRow[]>([]);
   const [policiesMeta, setPoliciesMeta] = useState<string | null>(null);
@@ -309,14 +333,14 @@ export default function App() {
     setActionMsg(null);
   }
 
-  async function loginAs(username: string, password = "pass") {
+  async function loginAs(nextUsername: string, nextPassword = DEMO_PASSWORD) {
     setLoggingIn(true);
     setLoginError(null);
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: nextUsername, password: nextPassword }),
       });
       if (res.status === 401) {
         setLoginError("Invalid credentials");
@@ -577,28 +601,89 @@ export default function App() {
       {!session ? (
         <section className="card">
           <h2>Try it as three different users</h2>
-          <div className="login-row">
-            <button
-              type="button"
-              disabled={loggingIn || !health}
-              onClick={() => loginAs("alice")}
-            >
-              Alice · Employee
+          <p className="meta">
+            This is the public demo. Pick a role below, or type the username and
+            the shared password.
+          </p>
+          <form
+            className="login-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void loginAs(username, password);
+            }}
+          >
+            <label>
+              Username
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </label>
+            <button type="submit" disabled={loggingIn || !health}>
+              {loggingIn ? "Signing in…" : "Sign in"}
             </button>
-            <button
-              type="button"
-              disabled={loggingIn || !health}
-              onClick={() => loginAs("bob")}
-            >
-              Bob · Supervisor
-            </button>
-            <button
-              type="button"
-              disabled={loggingIn || !health}
-              onClick={() => loginAs("admin")}
-            >
-              Ada · Admin
-            </button>
+          </form>
+          <div className="demo-accounts" data-testid="demo-accounts">
+            <div className="demo-banner">
+              <p className="demo-banner-label">Public demo</p>
+              <p className="demo-banner-hint">
+                Every role below uses the same password. Click Fill to load the
+                form, or Sign in to enter as that role.
+              </p>
+              <p className="demo-banner-password">
+                Password: <span data-testid="demo-password">{DEMO_PASSWORD}</span>
+              </p>
+            </div>
+            <ul className="demo-grid">
+              {DEMO_ACCOUNTS.map((account) => (
+                <li key={account.id}>
+                  <div className="demo-card">
+                    <p className="demo-card-title">{account.title}</p>
+                    <p className="demo-card-blurb">{account.blurb}</p>
+                    <p className="demo-card-email">{account.username}</p>
+                    <div className="demo-card-actions">
+                      <button
+                        type="button"
+                        className="demo-fill"
+                        disabled={loggingIn || !health}
+                        data-testid={`demo-fill-${account.id}`}
+                        onClick={() => {
+                          setUsername(account.username);
+                          setPassword(DEMO_PASSWORD);
+                        }}
+                      >
+                        Fill
+                      </button>
+                      <button
+                        type="button"
+                        className="demo-signin"
+                        disabled={loggingIn || !health}
+                        data-testid={`demo-signin-${account.id}`}
+                        onClick={() => {
+                          setUsername(account.username);
+                          setPassword(DEMO_PASSWORD);
+                          void loginAs(account.username, DEMO_PASSWORD);
+                        }}
+                      >
+                        Sign in
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
           <p className="meta">
             Ask all three the same question. Compare what comes back.
