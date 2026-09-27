@@ -9,7 +9,7 @@ You are pairing on **Contoso Policy Assistant**, a full-stack RAG + agent sample
 - Backend: .NET 8 Web API (`src/Api`)
 - Frontend: React + TypeScript Vite (`web`)
 - Policies: `data/policies/*.md` with YAML frontmatter `allowedRoles`
-- AI: Azure OpenAI preferred; OpenAI fallback; Lexical offline default via config
+- AI: Gemini (public instance), OpenAI / Azure OpenAI supported; Lexical offline default via config
 
 ## Working rules
 - Prefer thin vertical slices that compile and run.

@@ -1,5 +1,7 @@
 # Contoso Policy Assistant
 
+Built and maintained by CompCode Solutions (Bengaluru): AI systems that reach production. [Live demo](https://policy.compcodesolutions.com) · [Write-up](https://compcodesolutions.com/blog/access-control-before-retrieval/) · [Work with us](https://compcodesolutions.com/services#knowledge-assistant)
+
 **Most RAG implementations retrieve first and filter by permission afterwards. That leaks — and this repository shows the alternative, with the code and a test.**
 
 Filtering after retrieval leaks in two ways. The obvious one is metadata: restricted chunks were retrieved, so they leave fingerprints in citation counts, traces, token logs and debug endpoints. The subtle one is **top-K starvation** — if the ten nearest chunks are all restricted, an uncleared user gets *"I don't know"* while a cleared user gets a confident cited answer. That difference is itself information about what the corpus contains.
@@ -18,7 +20,7 @@ Proved both directions in [`RagPipelineTests.cs`](tests/Contoso.PolicyAssistant.
 
 **Stack:** .NET 8 Web API · React + TypeScript · RAG (Retrieval-Augmented Generation) · JWT auth · Docker · Playwright e2e tests
 
-[**Live demo**](https://policy.compcodesolutions.com) — sign in as three different users, ask the same question, compare what comes back.
+[**Live demo**](https://policy.compcodesolutions.com) — sign in as an Employee, a Supervisor or an Admin (three roles), ask the same question, compare what comes back.
 
 > The public instance uses **Gemini** when `Ai__Gemini__ApiKey` is set: embeddings via `gemini-embedding-001` (**768 dimensions**, Matryoshka), answers via `gemini-2.5-flash-lite` (free tier). OpenAI and Azure OpenAI remain behind the same interfaces. On daily quota (config `Ai__DailyRequestCeiling`, default 10) or API error it **falls back to lexical** retrieval (hashed bag-of-words, 256-d) so the demo degrades rather than breaking. The access-control path is identical either way — `Search` filters by role **before** cosine similarity and does not know where the vector came from. At corpus sizes beyond in-memory, the same principle moves into the store: `WHERE allowed_roles && $roles` evaluated *before* the ANN index ranks, rather than filtering its output.
 
@@ -354,4 +356,6 @@ GitHub Actions (`.github/workflows/ci.yml`): `dotnet test` · `npm run build` ·
 
 ## License & use
 
-Sample / learning project. Fork it, swap the policies, plug in your identity provider, and point the vector store at Azure AI Search or another backend — the handler contracts and security patterns stay the same.
+Reference implementation by [CompCode Solutions](https://compcodesolutions.com), released under the [MIT License](LICENSE). Fork it, swap the policies, plug in your identity provider, and point the vector store at Azure AI Search or another backend — the handler contracts and security patterns stay the same.
+
+Need this on your documents, with your identity provider, on your infrastructure? That's our [Internal Knowledge Assistant](https://compcodesolutions.com/services#knowledge-assistant) engagement: [book a 25-minute call](https://cal.com/compcode/discovery-call).

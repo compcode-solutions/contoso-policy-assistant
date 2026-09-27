@@ -1,6 +1,6 @@
 # Azure target architecture
 
-Maps the lab we built to a customer-ready Azure shape. Boxes below are the talking points.
+Maps the demo we built to a customer-ready Azure shape.
 
 ```text
                          ┌─────────────────┐
@@ -35,9 +35,9 @@ Write path (HITL):
   API propose create_ticket → Approval UX → Logic Apps / ServiceNow connector
 ```
 
-## Lab → Azure mapping
+## Demo → Azure mapping
 
-| Lab component | Azure service |
+| Demo component | Azure service |
 | --- | --- |
 | React Vite UI | Static Web Apps / App Service |
 | .NET 8 API | App Service or Container Apps (see `Dockerfile`) |
@@ -55,7 +55,7 @@ Write path (HITL):
 - Multi-region active-active
 - Customer-trained foundation model
 
-## Security notes for the interview
+## Security notes
 1. **Never** put API keys in the SPA.
 2. Apply **ACL at retrieve**, not only in the prompt (“please don’t show…”).
 3. Treat ticket creation as a **privileged tool** — human approval before side effects.

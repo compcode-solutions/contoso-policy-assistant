@@ -39,7 +39,7 @@ Effort bands are consulting-style estimates for a 1–2 engineer pilot.
 | 5.1 | Docker + CI | Repeatable build |
 | 5.2 | Azure target architecture + risks | Customer conversation |
 | 5.3 | Observability mapping (logs → App Insights) | Ops story |
-| 5.4 | Demo script + resume evidence | Interview / stakeholder demo |
+| 5.4 | Demo script | Stakeholder demo |
 
 ## Dependency sketch
 

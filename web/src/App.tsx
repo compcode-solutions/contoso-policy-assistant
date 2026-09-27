@@ -950,6 +950,10 @@ export default function App() {
           >
             Public repository
           </a>
+          {" · "}
+          <a href="https://compcodesolutions.com" target="_blank" rel="noreferrer">
+            Built by CompCode Solutions
+          </a>
         </p>
       </section>
     </div>

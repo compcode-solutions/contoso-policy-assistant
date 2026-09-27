@@ -1,6 +1,6 @@
 # Prompt log (Cursor + AI)
 
-Log accept / reject / edit decisions. This is interview evidence of process.
+Log of AI-assisted development decisions (accepted / rejected / edited). Kept as a record of how the system was built.
 
 ### Template
 ```

@@ -1,10 +1,10 @@
-# Learning log (interview talking points)
+# Engineering log
 
 ## Day 0 — Scaffold
 - Created runnable .NET 8 API (`/health`, `/api/info`) + React Vite UI.
 - Added 5 sample policies with `allowedRoles` (including supervisor-only safety SOP).
 - Cursor rules + PRD + prompt log started.
-- Decision: prefer **Azure OpenAI** for the Microsoft interview story; OpenAI works as fallback.
+- Decision: design against provider interfaces (Azure OpenAI / OpenAI); the public instance later moved to Gemini.
 
 ### What I can say tomorrow
 “I start engagements with a thin vertical slice and a PRD, not a big-bang AI demo.”
