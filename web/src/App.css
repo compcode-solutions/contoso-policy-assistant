@@ -103,6 +103,10 @@ h1 {
   border: 1px solid #d4d4d4;
   border-radius: 8px;
   font: inherit;
+  background: #fff;
+  color: #1a1a1a;
+  outline: none;
+  color-scheme: light;
 }
 
 .login-form button[type="submit"] {
