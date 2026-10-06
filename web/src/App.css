@@ -103,6 +103,15 @@ h1 {
   border: 1px solid #d4d4d4;
   border-radius: 8px;
   font: inherit;
+  background: #fff;
+  color: #1a1a1a;
+  outline: none;
+  color-scheme: light;
+}
+
+.login-form input:focus-visible {
+  border-color: #0f6e56;
+  box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.25);
 }
 
 .login-form button[type="submit"] {
