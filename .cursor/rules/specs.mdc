@@ -1,0 +1,11 @@
+---
+description: Spec-driven development. Work from docs/specs; one task, one commit, one check; ask instead of guessing.
+alwaysApply: true
+---
+
+- Changes bigger than a typo have a spec in `docs/specs/NNN-<slug>.md`. It is the source of truth. Rules: `docs/specs/README.md`.
+- Take the lowest-numbered unclaimed §6b task whose needs are met; write your name in Claim.
+- One task = one commit (subject `NNN-Tn: ...`) = one check. Run the check before the next task. Fail: fix it inside this task.
+- Change only the files the task names. Never build anything in the spec's §4 "Out of scope".
+- Missing detail: ask, never guess. Stop that task, add a §5 row with the question, report it in the RESPONSE BLOCK, and take a task that does not depend on it.
+- Branch `spec/NNN-<slug>`; one draft PR per spec with each check's output pasted. Fill the RESPONSE BLOCK, including PROBLEMS and STATE.
