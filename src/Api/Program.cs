@@ -235,6 +235,12 @@ app.MapGet("/health", (InMemoryVectorStore store, TicketStore tickets, PendingAp
     status = "ok",
     service = "Contoso.PolicyAssistant.Api",
     utc = DateTime.UtcNow,
+    // provider = ifm | gemini | … — never a key (task 104)
+    provider = clients.ActiveProvider.Equals("ifm", StringComparison.OrdinalIgnoreCase)
+        ? "ifm"
+        : clients.ActiveProvider.Equals("Gemini", StringComparison.OrdinalIgnoreCase)
+            ? "gemini"
+            : clients.ActiveProvider.ToLowerInvariant(),
     aiMode = clients.ActiveProvider,
     requestedProvider = clients.RequestedProvider,
     hostedConfigured = clients.HostedConfigured,

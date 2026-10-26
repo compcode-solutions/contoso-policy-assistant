@@ -12,7 +12,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Policies__RootPath: /app/data/policies
-      Ai__Provider: Gemini
+      # Prefer /opt/apps/env/contoso.env (LLM_PROVIDER=ifm for task 104; Gemini default).
+      Ai__Provider: ${Ai__Provider:-Gemini}
       # Prefer /opt/apps/env/contoso.env; default 8 stays under Gemini free-tier 20 RPD.
       Ai__DailyRequestCeiling: ${Ai__DailyRequestCeiling:-8}
       Ai__PerIpLimit: ${Ai__PerIpLimit:-10}

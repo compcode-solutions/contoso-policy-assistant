@@ -20,8 +20,13 @@ public static class AiClientFactory
 {
     public static AiClientSet Create(IConfiguration config)
     {
-        var requested = (config["Ai:Provider"] ?? "Gemini").Trim();
-        if (string.IsNullOrWhiteSpace(requested)) requested = "Gemini";
+        var requested = ResolveRequestedProvider(config);
+
+        if (string.Equals(requested, "Ifm", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(requested, "ifm", StringComparison.OrdinalIgnoreCase))
+        {
+            return CreateIfmPrimary(config, requested);
+        }
 
         if (string.Equals(requested, "Gemini", StringComparison.OrdinalIgnoreCase))
         {
@@ -95,6 +100,72 @@ public static class AiClientFactory
         }
 
         return Lexical(requested);
+    }
+
+    /// <summary>
+    /// IFM for answers; Gemini embeddings unchanged. Falls back to Gemini chat once
+    /// on IFM 429/5xx/timeout. Requires both LLM_API_KEY (or Ai:Ifm:ApiKey) and Gemini key.
+    /// </summary>
+    private static AiClientSet CreateIfmPrimary(IConfiguration config, string requested)
+    {
+        var ifmKey = FirstNonEmpty(
+            config["Ai:Ifm:ApiKey"],
+            Environment.GetEnvironmentVariable("LLM_API_KEY"),
+            Environment.GetEnvironmentVariable("IFM_API_KEY"));
+        var baseUrl = FirstNonEmpty(
+            config["Ai:Ifm:BaseUrl"],
+            Environment.GetEnvironmentVariable("LLM_BASE_URL"),
+            IfmGroundedChatClient.DefaultBaseUrl)!;
+        var chatModel = FirstNonEmpty(
+            config["Ai:Ifm:ChatModel"],
+            Environment.GetEnvironmentVariable("LLM_MODEL"),
+            IfmGroundedChatClient.DefaultModel)!;
+        var effort = FirstNonEmpty(
+            config["Ai:Ifm:ReasoningEffort"],
+            "low")!;
+
+        var geminiKey = config["Ai:Gemini:ApiKey"]
+            ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        var embedModel = config["Ai:Gemini:EmbeddingModel"] ?? GeminiEmbeddingClient.DefaultModel;
+        var geminiChatModel = config["Ai:Gemini:ChatModel"] ?? GeminiGroundedChatClient.DefaultModel;
+
+        if (string.IsNullOrWhiteSpace(ifmKey) || string.IsNullOrWhiteSpace(geminiKey))
+            return Lexical(requested);
+
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        var geminiHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        IGroundedChatClient ifmChat = new IfmGroundedChatClient(http, ifmKey, chatModel, baseUrl, effort);
+        IGroundedChatClient geminiChat = new GeminiGroundedChatClient(geminiHttp, geminiKey, geminiChatModel);
+        IGroundedChatClient chat = new FallbackGroundedChatClient(ifmChat, geminiChat);
+
+        return new AiClientSet(
+            new GeminiEmbeddingClient(geminiHttp, geminiKey, embedModel, GeminiEmbeddingClient.DefaultDimensions),
+            chat,
+            requested,
+            "ifm",
+            HostedConfigured: true,
+            embedModel,
+            chatModel,
+            GeminiEmbeddingClient.DefaultDimensions);
+    }
+
+    internal static string ResolveRequestedProvider(IConfiguration config)
+    {
+        var llm = Environment.GetEnvironmentVariable("LLM_PROVIDER");
+        if (!string.IsNullOrWhiteSpace(llm))
+            return llm.Trim();
+
+        var requested = (config["Ai:Provider"] ?? "Gemini").Trim();
+        return string.IsNullOrWhiteSpace(requested) ? "Gemini" : requested;
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        foreach (var v in values)
+        {
+            if (!string.IsNullOrWhiteSpace(v)) return v.Trim();
+        }
+        return null;
     }
 
     private static AiClientSet Lexical(string requested) =>
