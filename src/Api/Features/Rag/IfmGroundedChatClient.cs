@@ -21,8 +21,10 @@ public sealed class IfmGroundedChatClient : IGroundedChatClient
         @"<think>[\s\S]*?</think>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    // IFM ends its reasoning with </ifm|think>, <ifm|think>, <ifm|think_fast> or <ifm|think_faster>
+    // (hub/docs/43). Everything before the last such marker is reasoning, never the answer.
     private static readonly Regex IfmThinkTagRx = new(
-        @"</?ifm\|think(?:_fast(?:er)?)?>",
+        @"</?ifm\|think\w*>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly HttpClient _http;
@@ -143,11 +145,16 @@ public sealed class IfmGroundedChatClient : IGroundedChatClient
             if (usage.TryGetProperty("completion_tokens", out var ctkn)) completionTokens = ctkn.GetInt32();
         }
 
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            // Only reasoning came back (e.g. finish=length). Fail so the fallback provider answers,
+            // instead of telling the user the policies do not cover the question.
+            throw new LlmHttpException(null, "IFM empty answer", "empty");
+        }
+
         return new GroundedChatResult
         {
-            Text = string.IsNullOrWhiteSpace(content)
-                ? "I don't know based on the available policies."
-                : content.Trim(),
+            Text = content.Trim(),
             Model = ModelName,
             PromptTokens = promptTokens,
             CompletionTokens = completionTokens
@@ -156,15 +163,16 @@ public sealed class IfmGroundedChatClient : IGroundedChatClient
 
     public static string StripReasoning(string text)
     {
-        if (string.IsNullOrEmpty(text)) return text;
-        // Prefer text after the last IFM think closer when the model leaked
-        // reasoning into content (observed live: "… </ifm|think> Answer").
-        var closer = "</ifm|think>";
-        var idx = text.LastIndexOf(closer, StringComparison.OrdinalIgnoreCase);
-        if (idx >= 0)
-            text = text[(idx + closer.Length)..];
+        if (string.IsNullOrEmpty(text)) return "";
+        var markers = IfmThinkTagRx.Matches(text);
+        if (markers.Count > 0)
+        {
+            var last = markers[^1];
+            text = text[(last.Index + last.Length)..];
+        }
         text = ThinkBlockRx.Replace(text, "");
-        text = IfmThinkTagRx.Replace(text, "");
+        if (text.Contains("<think>", StringComparison.OrdinalIgnoreCase))
+            return ""; // an unclosed think block: no answer started
         return text.Trim();
     }
 }
@@ -174,13 +182,13 @@ public sealed class LlmHttpException : HttpRequestException
 {
     public string ReasonCode { get; }
 
-    public LlmHttpException(int? statusCode, string message)
+    public LlmHttpException(int? statusCode, string message, string? reasonCode = null)
         : base(
             message,
             inner: null,
             statusCode: statusCode.HasValue ? (System.Net.HttpStatusCode)statusCode.Value : null)
     {
-        ReasonCode = statusCode switch
+        ReasonCode = reasonCode ?? statusCode switch
         {
             429 => "429",
             >= 500 and <= 599 => "5xx",

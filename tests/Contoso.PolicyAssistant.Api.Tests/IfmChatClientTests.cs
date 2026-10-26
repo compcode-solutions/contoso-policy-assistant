@@ -12,8 +12,34 @@ public class IfmChatClientTests
     [Fact]
     public void StripReasoning_removes_think_tags()
     {
-        var raw = "Hello <think>secret</think> world <ifm|think>";
+        var raw = "Hello <think>secret</think> world";
         Assert.Equal("Hello  world", IfmGroundedChatClient.StripReasoning(raw));
+    }
+
+    [Theory]
+    [InlineData("plan the reply <ifm|think_fast> Stipend is $40 [1].", "Stipend is $40 [1].")]
+    [InlineData("a <ifm|think> b <ifm|think_faster> Final [2].", "Final [2].")]
+    [InlineData("I should answer briefly <ifm|think>", "")]
+    [InlineData("<think>still thinking", "")]
+    public void StripReasoning_keeps_only_text_after_the_last_marker(string raw, string expected)
+    {
+        Assert.Equal(expected, IfmGroundedChatClient.StripReasoning(raw));
+    }
+
+    [Fact]
+    public async Task Ifm_client_throws_on_reasoning_only_reply_so_fallback_answers()
+    {
+        var handler = new FakeHandler((_, _) => Task.FromResult(JsonResponse(HttpStatusCode.OK, new
+        {
+            choices = new[] { new { message = new { role = "assistant", content = "thinking about policies </ifm|think>" } } }
+        })));
+        using var http = new HttpClient(handler);
+        var client = new IfmGroundedChatClient(http, "test-key", IfmGroundedChatClient.DefaultModel, "http://ifm.test/v1");
+
+        var ex = await Assert.ThrowsAsync<LlmHttpException>(() =>
+            client.AnswerAsync("q", [SampleChunk()], CancellationToken.None));
+        Assert.Equal("empty", ex.ReasonCode);
+        Assert.True(FallbackGroundedChatClient.ShouldFallback(ex, CancellationToken.None));
     }
 
     [Fact]
@@ -120,6 +146,8 @@ public class IfmChatClientTests
         Assert.True(FallbackGroundedChatClient.ShouldFallback(new LlmHttpException(429, "rate"), CancellationToken.None));
         Assert.True(FallbackGroundedChatClient.ShouldFallback(new LlmHttpException(503, "down"), CancellationToken.None));
         Assert.True(FallbackGroundedChatClient.ShouldFallback(new TimeoutException(), CancellationToken.None));
+        Assert.True(FallbackGroundedChatClient.ShouldFallback(new LlmHttpException(401, "revoked"), CancellationToken.None));
+        Assert.True(FallbackGroundedChatClient.ShouldFallback(new LlmHttpException(403, "forbidden"), CancellationToken.None));
     }
 
     [Fact]
