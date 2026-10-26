@@ -17,8 +17,12 @@ public sealed class IfmGroundedChatClient : IGroundedChatClient
     public const string DefaultModel = "IFM/K2-Horizon-375B-A23B";
     public const string DefaultBaseUrl = "https://api.ifm.ai/v1";
 
-    private static readonly Regex ThinkTagRx = new(
-        @"<think>[\s\S]*?</think>|<ifm\|think(?:_fast(?:er)?)?>",
+    private static readonly Regex ThinkBlockRx = new(
+        @"<think>[\s\S]*?</think>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex IfmThinkTagRx = new(
+        @"</?ifm\|think(?:_fast(?:er)?)?>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly HttpClient _http;
@@ -153,7 +157,15 @@ public sealed class IfmGroundedChatClient : IGroundedChatClient
     public static string StripReasoning(string text)
     {
         if (string.IsNullOrEmpty(text)) return text;
-        return ThinkTagRx.Replace(text, "").Trim();
+        // Prefer text after the last IFM think closer when the model leaked
+        // reasoning into content (observed live: "… </ifm|think> Answer").
+        var closer = "</ifm|think>";
+        var idx = text.LastIndexOf(closer, StringComparison.OrdinalIgnoreCase);
+        if (idx >= 0)
+            text = text[(idx + closer.Length)..];
+        text = ThinkBlockRx.Replace(text, "");
+        text = IfmThinkTagRx.Replace(text, "");
+        return text.Trim();
     }
 }
 

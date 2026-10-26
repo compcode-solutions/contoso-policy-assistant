@@ -17,6 +17,15 @@ public class IfmChatClientTests
     }
 
     [Fact]
+    public void StripReasoning_keeps_answer_after_ifm_closer()
+    {
+        var raw = "Just answer from context. </ifm|think> The monthly wellness stipend is $40 USD [1].";
+        Assert.Equal(
+            "The monthly wellness stipend is $40 USD [1].",
+            IfmGroundedChatClient.StripReasoning(raw));
+    }
+
+    [Fact]
     public async Task Ifm_client_uses_content_only_against_fake_server()
     {
         var handler = new FakeHandler((req, ct) =>
