@@ -74,7 +74,8 @@ public sealed class FallbackGroundedChatClient : IGroundedChatClient
         if (ex is LlmHttpException llm)
         {
             var code = (int?)llm.StatusCode;
-            return code is null or 429 or (>= 500 and <= 599);
+            // 401/403: a revoked or expired IFM key must not take the assistant down.
+            return code is null or 401 or 403 or 429 or (>= 500 and <= 599);
         }
         if (ex is HttpRequestException http)
         {
