@@ -4,13 +4,13 @@ public sealed class AiOptions
 {
     public const string SectionName = "Ai";
 
-    /// <summary>Gemini, Lexical, OpenAI, or AzureOpenAI.</summary>
+    /// <summary>Gemini, Ifm, Lexical, OpenAI, or AzureOpenAI. Env LLM_PROVIDER=ifm also selects Ifm.</summary>
     public string Provider { get; set; } = "Gemini";
 
     /// <summary>
-    /// Global cap on hosted (Gemini/OpenAI/Azure) ask requests per UTC day.
+    /// Global cap on hosted (Gemini/IFM/OpenAI/Azure) ask requests per UTC day.
     /// Kept under Gemini free-tier generate RPD (20 for flash-lite) with headroom.
-    /// Lexical / demo-script answers do not consume this quota.
+    /// Lexical / demo-script answers do not consume this quota. IFM calls count here too.
     /// </summary>
     public int DailyRequestCeiling { get; set; } = 8;
 
@@ -23,6 +23,16 @@ public sealed class AiOptions
     public AzureOpenAiOptions AzureOpenAI { get; set; } = new();
     public OpenAiOptions OpenAI { get; set; } = new();
     public GeminiOptions Gemini { get; set; } = new();
+    public IfmOptions Ifm { get; set; } = new();
+}
+
+public sealed class IfmOptions
+{
+    public string ApiKey { get; set; } = "";
+    public string BaseUrl { get; set; } = IfmGroundedChatClient.DefaultBaseUrl;
+    public string ChatModel { get; set; } = IfmGroundedChatClient.DefaultModel;
+    /// <summary>low | medium | high — IFM chat_template_kwargs.reasoning_effort</summary>
+    public string ReasoningEffort { get; set; } = "low";
 }
 
 public sealed class AzureOpenAiOptions
