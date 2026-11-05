@@ -22,7 +22,7 @@ Proved both directions in [`RagPipelineTests.cs`](tests/Contoso.PolicyAssistant.
 
 [**Live demo**](https://policy.compcodesolutions.com) — sign in as an Employee, a Supervisor or an Admin (three roles), ask the same question, compare what comes back.
 
-> The public instance uses **Gemini** when `Ai__Gemini__ApiKey` is set: embeddings via `gemini-embedding-001` (**768 dimensions**, Matryoshka), answers via `gemini-2.5-flash-lite` (free tier). OpenAI and Azure OpenAI remain behind the same interfaces. On daily quota (config `Ai__DailyRequestCeiling`, default 10) or API error it **falls back to lexical** retrieval (hashed bag-of-words, 256-d) so the demo degrades rather than breaking. The access-control path is identical either way — `Search` filters by role **before** cosine similarity and does not know where the vector came from. At corpus sizes beyond in-memory, the same principle moves into the store: `WHERE allowed_roles && $roles` evaluated *before* the ANN index ranks, rather than filtering its output.
+> The public instance answers via IFM's K2-Horizon model (`IFM/K2-Horizon-375B-A23B`); embeddings via `gemini-embedding-001` (**768 dimensions**, Matryoshka). OpenAI and Azure OpenAI remain behind the same interfaces. On daily quota (config `Ai__DailyRequestCeiling`, default 10) or API error it **falls back to lexical** retrieval (hashed bag-of-words, 256-d) so the demo degrades rather than breaking. The access-control path is identical either way — `Search` filters by role **before** cosine similarity and does not know where the vector came from. At corpus sizes beyond in-memory, the same principle moves into the store: `WHERE allowed_roles && $roles` evaluated *before* the ANN index ranks, rather than filtering its output.
 
 Written up in full: [Why filtering RAG results after retrieval leaks data](https://compcodesolutions.com/blog/access-control-before-retrieval)
 
@@ -52,7 +52,7 @@ In short: grounded Q&A over documents, security by role, and human-in-the-loop f
 | **Refusal** | No matching context → “I don’t know”, not a hallucination |
 | **Role-based ACL** | Documents filtered **before** search — the model never sees forbidden content |
 | **Agent + HITL** | `create_ticket` is proposed, then Approve/Reject — no auto-write |
-| **Swappable AI** | Gemini (`gemini-embedding-001` 768-d + `gemini-2.5-flash-lite`); OpenAI; Azure OpenAI; lexical fallback on quota/error |
+| **Swappable AI** | IFM ([`IfmGroundedChatClient`](src/Api/Features/Rag/IfmGroundedChatClient.cs) — `Ai:Ifm:ApiKey`, `Ai:Ifm:BaseUrl`, `Ai:Ifm:ChatModel`, `Ai:Ifm:ReasoningEffort`); Gemini (`gemini-embedding-001` 768-d + `gemini-2.5-flash-lite`); OpenAI; Azure OpenAI; lexical fallback on quota/error |
 | **Tests & evals** | Unit tests + 14 golden eval cases for cite/refuse/ACL/ticket rules |
 | **Container-ready** | Dockerfile + `docker compose` for the API |
 
@@ -306,10 +306,14 @@ Golden evals in `evals/golden.json` guard against regressions in grounding, refu
 
 | Setting | Purpose | Default |
 | --- | --- | --- |
-| `Ai:Provider` | `Gemini`, `Lexical`, `OpenAI`, or `AzureOpenAI` | `Gemini` |
+| `Ai:Provider` | `Gemini`, `Ifm`, `Lexical`, `OpenAI`, or `AzureOpenAI` | `Gemini` |
 | `Ai:Gemini:ApiKey` | Gemini API key (env: `Ai__Gemini__ApiKey`) | empty |
 | `Ai:Gemini:ChatModel` | Generation model (free tier) | `gemini-2.5-flash-lite` |
 | `Ai:Gemini:EmbeddingModel` | Embedding model (768-d) | `gemini-embedding-001` |
+| `Ai:Ifm:ApiKey` | IFM API key. [`IfmGroundedChatClient`](src/Api/Features/Rag/IfmGroundedChatClient.cs) receives it as `apiKey` (env: `Ai__Ifm__ApiKey`, `LLM_API_KEY`, or `IFM_API_KEY`) | empty |
+| `Ai:Ifm:BaseUrl` | OpenAI-compatible base URL passed as `baseUrl` | `https://api.ifm.ai/v1` |
+| `Ai:Ifm:ChatModel` | Answer model passed as `modelName` | `IFM/K2-Horizon-375B-A23B` |
+| `Ai:Ifm:ReasoningEffort` | Reasoning effort passed as `reasoningEffort` | `low` |
 | `Ai:OpenAI:ApiKey` | OpenAI API key (env: `Ai__OpenAI__ApiKey`) | empty |
 | `Ai:OpenAI:ChatModel` | Generation model | `gpt-4o-mini` |
 | `Ai:OpenAI:EmbeddingModel` | Embedding model (1536-d) | `text-embedding-3-small` |
