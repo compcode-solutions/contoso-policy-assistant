@@ -19,3 +19,6 @@ scripts/
 *.md
 !README.md
 .git
+.claude
+.agents
+.cursor
